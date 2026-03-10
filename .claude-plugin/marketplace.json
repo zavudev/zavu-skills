@@ -1,0 +1,6 @@
+{
+  "name": "zavu-marketplace",
+  "owner": { "name": "zavudev" },
+  "metadata": { "description": "Zavu messaging skills for AI coding agents", "version": "1.0.0" },
+  "plugins": [{ "name": "zavu-skills", "source": "./" }]
+}

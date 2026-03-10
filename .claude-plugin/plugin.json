@@ -1,0 +1,10 @@
+{
+  "name": "zavu-skills",
+  "version": "1.0.0",
+  "description": "Claude Code skills for the Zavu unified messaging API. Send SMS, WhatsApp, Email, Telegram, and Voice messages with intelligent routing.",
+  "homepage": "https://docs.zavu.dev",
+  "repository": "https://github.com/zavudev/zavu-skills",
+  "author": { "name": "zavudev" },
+  "license": "Apache-2.0",
+  "keywords": ["sms", "whatsapp", "email", "telegram", "voice", "messaging-api", "multichannel", "broadcasts"]
+}

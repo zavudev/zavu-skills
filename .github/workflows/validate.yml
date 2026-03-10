@@ -1,0 +1,62 @@
+name: Validate Skills
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate JSON configs
+        run: |
+          echo "Validating JSON files..."
+          for f in .claude-plugin/*.json; do
+            echo "  Checking $f"
+            node -e "JSON.parse(require('fs').readFileSync('$f', 'utf8'))" || exit 1
+          done
+          echo "All JSON files valid."
+
+      - name: Validate SKILL.md frontmatter
+        run: |
+          echo "Validating SKILL.md frontmatter..."
+          errors=0
+          for f in skills/*/SKILL.md; do
+            echo "  Checking $f"
+            # Check file starts with ---
+            if ! head -1 "$f" | grep -q '^---$'; then
+              echo "    ERROR: Missing YAML frontmatter opening ---"
+              errors=$((errors + 1))
+              continue
+            fi
+            # Check there's a closing ---
+            if ! sed -n '2,/^---$/p' "$f" | tail -1 | grep -q '^---$'; then
+              echo "    ERROR: Missing YAML frontmatter closing ---"
+              errors=$((errors + 1))
+              continue
+            fi
+            # Check required fields: name and description
+            frontmatter=$(sed -n '2,/^---$/p' "$f" | head -n -1)
+            if ! echo "$frontmatter" | grep -q '^name:'; then
+              echo "    ERROR: Missing 'name' field in frontmatter"
+              errors=$((errors + 1))
+            fi
+            if ! echo "$frontmatter" | grep -q '^description:'; then
+              echo "    ERROR: Missing 'description' field in frontmatter"
+              errors=$((errors + 1))
+            fi
+          done
+          if [ $errors -gt 0 ]; then
+            echo "Found $errors error(s)"
+            exit 1
+          fi
+          echo "All SKILL.md files valid."

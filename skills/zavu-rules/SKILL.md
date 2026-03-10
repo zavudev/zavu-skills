@@ -1,0 +1,128 @@
+---
+name: zavu-rules
+description: Foundational context for the Zavu unified messaging API. Always loaded.
+---
+
+# Zavu API Context
+
+Zavu is a unified multi-channel messaging API. One API to send messages via SMS, WhatsApp, Telegram, Email, Instagram, and Voice with ML-powered intelligent routing.
+
+## SDK Ecosystem
+
+| Language | Package | Install |
+|----------|---------|---------|
+| TypeScript | `@zavudev/sdk` | `npm add @zavudev/sdk` |
+| Python | `zavudev` | `pip install zavudev` |
+| Go | `github.com/zavudev/sdk-go` | `go get github.com/zavudev/sdk-go` |
+| PHP | `zavudev/sdk-php` | Composer |
+| Ruby | `zavudev/sdk-ruby` | RubyGems |
+
+### TypeScript Init
+
+```typescript
+import Zavudev from '@zavudev/sdk';
+
+const zavu = new Zavudev({
+  apiKey: process.env['ZAVUDEV_API_KEY'],
+});
+```
+
+### Python Init
+
+```python
+import os
+from zavudev import Zavudev
+
+zavu = Zavudev(api_key=os.environ.get("ZAVUDEV_API_KEY"))
+```
+
+### Python Async
+
+```python
+from zavudev import AsyncZavudev
+
+zavu = AsyncZavudev(api_key=os.environ.get("ZAVUDEV_API_KEY"))
+```
+
+### Go Init
+
+```go
+import "github.com/zavudev/sdk-go"
+
+client := zavudev.NewClient(os.Getenv("ZAVUDEV_API_KEY"))
+```
+
+## Authentication
+
+- Environment variable: `ZAVUDEV_API_KEY`
+- Key prefixes: `zv_live_` (production), `zv_test_` (sandbox)
+- Header: `Authorization: Bearer <api_key>`
+- Sender override header: `Zavu-Sender: <sender_id>`
+
+## Core Conventions
+
+- **Phone numbers**: Always E.164 format (`+14155551234`)
+- **Channels**: `auto`, `sms`, `sms_oneway`, `whatsapp`, `telegram`, `email`, `instagram`, `voice`
+- **Message types**: `text`, `image`, `video`, `audio`, `document`, `sticker`, `location`, `contact`, `buttons`, `list`, `reaction`, `template`
+- **Pagination**: Cursor-based. All list endpoints return `{ items: [...], nextCursor: string | null }`
+- **Idempotency**: Use `idempotencyKey` on send to prevent duplicate messages
+
+## Error Handling
+
+### TypeScript
+
+```typescript
+import Zavudev, { APIError } from '@zavudev/sdk';
+
+try {
+  await zavu.messages.send({ to: "+14155551234", text: "Hello" });
+} catch (error) {
+  if (error instanceof APIError) {
+    console.error(error.status, error.message);
+  }
+}
+```
+
+### Python
+
+```python
+from zavudev import Zavudev, APIError
+
+try:
+    zavu.messages.send(to="+14155551234", text="Hello")
+except APIError as e:
+    print(e.status_code, e.message)
+```
+
+## Key Business Rules
+
+1. **WhatsApp 24h window**: Free-form messages require an open conversation window (user messaged you in last 24h). Use template messages to initiate conversations outside the window.
+2. **Email requires KYC**: Complete identity verification in the dashboard before sending emails.
+3. **URL verification**: SMS/email messages containing URLs require those URLs to be pre-verified via `/v1/urls`.
+4. **URL shorteners blocked**: bit.ly, t.co, etc. are always blocked. Use full destination URLs.
+5. **Smart routing**: Channel `auto` uses ML to pick the best channel based on cost, deliverability, and contact preferences.
+6. **Fallback**: If WhatsApp fails, messages can automatically fall back to SMS (enabled by default).
+
+## MCP Server
+
+For direct API execution from AI assistants:
+
+```bash
+claude mcp add --transport stdio zavudev_sdk_api \
+  --env ZAVUDEV_API_KEY="your_key" -- npx -y @zavudev/sdk-mcp
+```
+
+Tools available: `search_docs` (search API docs), `execute` (run TypeScript against authenticated client).
+
+## CLI
+
+The `zavudev/cli` package provides terminal access to all API operations.
+
+## Rate Limits
+
+Check `X-RateLimit-Remaining` header. Use `.withResponse()` (TS) or `.with_raw_response()` (Python) to access response headers.
+
+## Message Statuses
+
+`queued` -> `sending` -> `sent` -> `delivered` (success path)
+`queued` -> `sending` -> `failed` (failure path)
