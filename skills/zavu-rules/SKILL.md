@@ -109,7 +109,7 @@ For direct API execution from AI assistants:
 
 ```bash
 claude mcp add --transport stdio zavudev_sdk_api \
-  --env ZAVUDEV_API_KEY="your_key" -- npx -y @zavudev/sdk-mcp
+  --env ZAVUDEV_API_KEY=$ZAVUDEV_API_KEY -- npx -y @zavudev/sdk-mcp
 ```
 
 Tools available: `search_docs` (search API docs), `execute` (run TypeScript against authenticated client).

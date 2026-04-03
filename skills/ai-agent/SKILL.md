@@ -29,7 +29,7 @@ const result = await zavu.senders.agent.create({
   provider: "openai",
   model: "gpt-4o-mini",
   systemPrompt: "You are a helpful customer support agent for Acme Corp. Be friendly, concise, and helpful. If you don't know the answer, say so.",
-  apiKey: "sk-...",
+  apiKey: process.env.PROVIDER_API_KEY,
   contextWindowMessages: 10,
   includeContactMetadata: true,
   triggerOnChannels: ["sms", "whatsapp"],
@@ -46,7 +46,7 @@ result = zavu.senders.agent.create(
     provider="openai",
     model="gpt-4o-mini",
     system_prompt="You are a helpful customer support agent...",
-    api_key="sk-...",
+    api_key=os.environ["PROVIDER_API_KEY"],
 )
 ```
 
@@ -178,7 +178,7 @@ const result = await zavu.senders.agent.tools.create({
   name: "get_order_status",
   description: "Get the current status of a customer order",
   webhookUrl: "https://api.example.com/webhooks/order-status",
-  webhookSecret: "whsec_...",
+  webhookSecret: process.env.WEBHOOK_SECRET,
   parameters: {
     type: "object",
     properties: {
