@@ -211,7 +211,7 @@ await zavu.messages.send({
 ```typescript
 // Get single message
 const msg = await zavu.messages.get({ messageId: "msg_abc123" });
-console.log(msg.message.status); // queued | sending | sent | delivered | failed
+console.log(msg.message.status); // queued | sending | sent | delivered | read | failed
 
 // List with filters + pagination
 let cursor: string | undefined;

@@ -1,6 +1,6 @@
 ---
 name: broadcast-campaign
-description: Create and manage broadcast campaigns for bulk messaging across SMS, WhatsApp, Email, and Telegram.
+description: Create and manage broadcast campaigns for bulk messaging across SMS, WhatsApp, Email, Telegram, Instagram, and Voice.
 ---
 
 # Broadcast Campaign
@@ -28,7 +28,7 @@ draft -> pending_review -> approved -> sending -> completed
 ```typescript
 const result = await zavu.broadcasts.create({
   name: "Black Friday Sale",
-  channel: "sms", // sms | whatsapp | email | telegram | smart
+  channel: "sms", // smart | sms | sms_oneway | whatsapp | telegram | email | instagram | voice
   text: "Hi {{name}}, check out our Black Friday deals! Code: FRIDAY20",
 });
 const broadcastId = result.broadcast.id; // brd_xxx
@@ -48,11 +48,14 @@ broadcast_id = result.broadcast.id
 
 | Channel | Description |
 |---------|-------------|
-| `sms` | SMS to all contacts |
-| `whatsapp` | WhatsApp (requires template for non-window contacts) |
-| `email` | Email (requires KYC, needs `emailSubject`) |
-| `telegram` | Telegram |
 | `smart` | Per-contact intelligent routing |
+| `sms` | SMS to all contacts |
+| `sms_oneway` | One-way SMS (no replies) |
+| `whatsapp` | WhatsApp (requires template for non-window contacts) |
+| `telegram` | Telegram |
+| `email` | Email (requires KYC, needs `emailSubject`) |
+| `instagram` | Instagram Direct |
+| `voice` | Voice call with text-to-speech |
 
 ### 2. Add Contacts (batch, max 1000/request)
 

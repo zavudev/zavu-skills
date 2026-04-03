@@ -21,11 +21,12 @@ Use this skill when setting up webhook endpoints to receive inbound messages, de
 | `message.inbound` | Inbound | Customer sent you a message |
 | `conversation.new` | Inbound | First message from a new contact |
 | `message.unsupported` | Inbound | Unsupported message type received |
-| `message.reaction` | Inbound | Customer reacted to a message |
 | `message.queued` | Outbound | Message queued for delivery |
 | `message.sent` | Outbound | Message sent to carrier |
 | `message.delivered` | Outbound | Message delivered to recipient |
+| `message.read` | Outbound | Message read by recipient |
 | `message.failed` | Outbound | Message delivery failed |
+| `broadcast.status_changed` | Broadcasts | Broadcast status changed |
 | `template.status_changed` | Templates | WhatsApp template approval status changed |
 | `invitation.status_changed` | Invitations | Partner invitation status changed |
 

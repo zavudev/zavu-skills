@@ -18,7 +18,9 @@ Contact (John Doe)
 ├── SMS: +14155551234 (primary)
 ├── WhatsApp: +14155551234 (primary)
 ├── Email: john@example.com (primary)
-└── Email: john.work@company.com (label: "work")
+├── Email: john.work@company.com (label: "work")
+├── Telegram: @johndoe
+└── Voice: +14155551234
 ```
 
 ## Auto-Creation
@@ -85,7 +87,8 @@ const channel = await zavu.contacts.channels.add({
   contactId: "ct_abc123",
   channel: "email",
   identifier: "john.work@company.com",
-  label: "work",
+  label: "work",       // optional
+  countryCode: "US",   // optional, 2-letter ISO
 });
 
 // Update channel

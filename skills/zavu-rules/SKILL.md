@@ -52,6 +52,22 @@ import "github.com/zavudev/sdk-go"
 client := zavudev.NewClient(os.Getenv("ZAVUDEV_API_KEY"))
 ```
 
+### Ruby Init
+
+```ruby
+require "zavudev"
+
+client = Zavudev::Client.new(api_key: ENV["ZAVUDEV_API_KEY"])
+```
+
+### PHP Init
+
+```php
+use Zavudev\Client;
+
+$client = new Client(apiKey: getenv('ZAVUDEV_API_KEY'));
+```
+
 ## Authentication
 
 - Environment variable: `ZAVUDEV_API_KEY`
@@ -124,5 +140,7 @@ Check `X-RateLimit-Remaining` header. Use `.withResponse()` (TS) or `.with_raw_r
 
 ## Message Statuses
 
-`queued` -> `sending` -> `sent` -> `delivered` (success path)
+`queued` -> `sending` -> `sent` -> `delivered` -> `read` (success path)
 `queued` -> `sending` -> `failed` (failure path)
+`received` (inbound messages)
+`pending_url_verification` (message with URLs awaiting verification)
