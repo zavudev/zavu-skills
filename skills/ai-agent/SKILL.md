@@ -50,6 +50,42 @@ result = zavu.senders.agent.create(
 )
 ```
 
+**Go:**
+```go
+result, err := client.Senders.Agent.Create(context.TODO(), zavudev.AgentCreateParams{
+    SenderID:     zavudev.String("snd_abc123"),
+    Name:         zavudev.String("Customer Support"),
+    Provider:     zavudev.String("openai"),
+    Model:        zavudev.String("gpt-4o-mini"),
+    SystemPrompt: zavudev.String("You are a helpful customer support agent..."),
+    APIKey:       zavudev.String(os.Getenv("PROVIDER_API_KEY")),
+})
+```
+
+**Ruby:**
+```ruby
+result = client.senders.agent.create(
+    sender_id: "snd_abc123",
+    name: "Customer Support",
+    provider: "openai",
+    model: "gpt-4o-mini",
+    system_prompt: "You are a helpful customer support agent...",
+    api_key: ENV["PROVIDER_API_KEY"],
+)
+```
+
+**PHP:**
+```php
+$result = $client->senders->agent->create([
+    'senderId' => 'snd_abc123',
+    'name' => 'Customer Support',
+    'provider' => 'openai',
+    'model' => 'gpt-4o-mini',
+    'systemPrompt' => 'You are a helpful customer support agent...',
+    'apiKey' => getenv('PROVIDER_API_KEY'),
+]);
+```
+
 ## Provider & Model Selection
 
 | Provider | Models | API Key Required |

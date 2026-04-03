@@ -172,6 +172,141 @@ def handle_webhook():
     return "OK", 200
 ```
 
+### Go
+
+```go
+package main
+
+import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"io"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+)
+
+func verifyZavuSignature(r *http.Request, secret string) ([]byte, bool) {
+	header := r.Header.Get("X-Zavu-Signature")
+	if header == "" {
+		return nil, false
+	}
+
+	parts := strings.Split(header, ",")
+	var timestamp int64
+	var signature string
+	for _, part := range parts {
+		if strings.HasPrefix(part, "t=") {
+			timestamp, _ = strconv.ParseInt(part[2:], 10, 64)
+		} else if strings.HasPrefix(part, "v1=") {
+			signature = part[3:]
+		}
+	}
+
+	if time.Now().Unix()-timestamp > 300 {
+		return nil, false
+	}
+
+	body, _ := io.ReadAll(r.Body)
+	signedPayload := strconv.FormatInt(timestamp, 10) + "." + string(body)
+	h := hmac.New(sha256.New, []byte(secret))
+	h.Write([]byte(signedPayload))
+	expected := hex.EncodeToString(h.Sum(nil))
+
+	return body, hmac.Equal([]byte(expected), []byte(signature))
+}
+
+func main() {
+	secret := os.Getenv("ZAVU_WEBHOOK_SECRET")
+	http.HandleFunc("/webhooks/zavu", func(w http.ResponseWriter, r *http.Request) {
+		body, valid := verifyZavuSignature(r, secret)
+		if !valid {
+			http.Error(w, "Invalid signature", http.StatusUnauthorized)
+			return
+		}
+
+		var event map[string]interface{}
+		json.Unmarshal(body, &event)
+		// Process event...
+		w.WriteHeader(http.StatusOK)
+	})
+	http.ListenAndServe(":3000", nil)
+}
+```
+
+### Ruby (Sinatra)
+
+```ruby
+require "sinatra"
+require "openssl"
+require "json"
+
+def verify_zavu_signature(request, secret)
+  header = request.env["HTTP_X_ZAVU_SIGNATURE"]
+  return false unless header
+
+  parts = header.split(",")
+  timestamp = parts.find { |p| p.start_with?("t=") }&.[](2..)&.to_i
+  signature = parts.find { |p| p.start_with?("v1=") }&.[](3..)
+
+  return false unless timestamp && signature
+  return false if Time.now.to_i - timestamp > 300
+
+  raw_body = request.body.read
+  request.body.rewind
+  signed_payload = "#{timestamp}.#{raw_body}"
+  expected = OpenSSL::HMAC.hexdigest("SHA256", secret, signed_payload)
+
+  Rack::Utils.secure_compare(expected, signature)
+end
+
+post "/webhooks/zavu" do
+  halt 401, "Invalid signature" unless verify_zavu_signature(request, ENV["ZAVU_WEBHOOK_SECRET"])
+
+  event = JSON.parse(request.body.read)
+  # Process event...
+  status 200
+end
+```
+
+### PHP
+
+```php
+<?php
+function verifyZavuSignature(string $secret): bool {
+    $header = $_SERVER['HTTP_X_ZAVU_SIGNATURE'] ?? '';
+    if (empty($header)) return false;
+
+    $parts = explode(',', $header);
+    $timestamp = $signature = null;
+    foreach ($parts as $part) {
+        if (str_starts_with($part, 't=')) $timestamp = (int) substr($part, 2);
+        elseif (str_starts_with($part, 'v1=')) $signature = substr($part, 3);
+    }
+
+    if (!$timestamp || !$signature) return false;
+    if (time() - $timestamp > 300) return false;
+
+    $rawBody = file_get_contents('php://input');
+    $expected = hash_hmac('sha256', "{$timestamp}.{$rawBody}", $secret);
+
+    return hash_equals($expected, $signature);
+}
+
+if (!verifyZavuSignature(getenv('ZAVU_WEBHOOK_SECRET'))) {
+    http_response_code(401);
+    exit('Invalid signature');
+}
+
+$event = json_decode(file_get_contents('php://input'), true);
+// Process event...
+http_response_code(200);
+```
+
 ## Retry Policy
 
 | Attempt | Delay |

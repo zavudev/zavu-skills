@@ -53,6 +53,39 @@ contact = zavu.contacts.create(
 )
 ```
 
+**Go:**
+```go
+contact, err := client.Contacts.Create(context.TODO(), zavudev.ContactCreateParams{
+    DisplayName: zavudev.String("John Doe"),
+    Channels: []zavudev.ContactChannelParam{
+        {Channel: "sms", Identifier: "+14155551234", IsPrimary: zavudev.Bool(true)},
+        {Channel: "email", Identifier: "john@example.com", IsPrimary: zavudev.Bool(true)},
+    },
+})
+```
+
+**Ruby:**
+```ruby
+contact = client.contacts.create(
+    display_name: "John Doe",
+    channels: [
+        { channel: "sms", identifier: "+14155551234", is_primary: true },
+        { channel: "email", identifier: "john@example.com", is_primary: true },
+    ],
+)
+```
+
+**PHP:**
+```php
+$contact = $client->contacts->create([
+    'displayName' => 'John Doe',
+    'channels' => [
+        ['channel' => 'sms', 'identifier' => '+14155551234', 'isPrimary' => true],
+        ['channel' => 'email', 'identifier' => 'john@example.com', 'isPrimary' => true],
+    ],
+]);
+```
+
 ## Get & List Contacts
 
 ```typescript
@@ -172,6 +205,26 @@ result = zavu.introspect.phone(phone_number="+14155551234")
 print(result.valid_number)
 print(result.line_type)
 print(result.carrier.name if result.carrier else "Unknown")
+```
+
+**Go:**
+```go
+result, err := client.Introspect.Phone(context.TODO(), zavudev.PhoneIntrospectionParams{
+    PhoneNumber: zavudev.String("+14155551234"),
+})
+fmt.Println(result.ValidNumber, result.LineType, result.Carrier.Name)
+```
+
+**Ruby:**
+```ruby
+result = client.introspect.phone(phone_number: "+14155551234")
+puts result.valid_number, result.line_type, result.carrier&.name
+```
+
+**PHP:**
+```php
+$result = $client->introspect->phone(['phoneNumber' => '+14155551234']);
+echo $result->validNumber, $result->lineType, $result->carrier?->name;
 ```
 
 ## Constraints

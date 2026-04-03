@@ -53,6 +53,39 @@ template = zavu.templates.create(
 )
 ```
 
+**Go:**
+```go
+template, err := client.Templates.Create(context.TODO(), zavudev.TemplateCreateParams{
+    Name:             zavudev.String("order_confirmation"),
+    Language:         zavudev.String("en"),
+    Body:             zavudev.String("Hi {{1}}, your order {{2}} has been confirmed and will ship within 24 hours."),
+    WhatsappCategory: zavudev.String("UTILITY"),
+    Variables:        []string{"customer_name", "order_id"},
+})
+```
+
+**Ruby:**
+```ruby
+template = client.templates.create(
+    name: "order_confirmation",
+    language: "en",
+    body: "Hi {{1}}, your order {{2}} has been confirmed and will ship within 24 hours.",
+    whatsapp_category: "UTILITY",
+    variables: ["customer_name", "order_id"],
+)
+```
+
+**PHP:**
+```php
+$template = $client->templates->create([
+    'name' => 'order_confirmation',
+    'language' => 'en',
+    'body' => 'Hi {{1}}, your order {{2}} has been confirmed and will ship within 24 hours.',
+    'whatsappCategory' => 'UTILITY',
+    'variables' => ['customer_name', 'order_id'],
+]);
+```
+
 ## Template with Buttons
 
 ```typescript

@@ -41,6 +41,35 @@ for number in result.items:
     print(number.phone_number, number.pricing.monthly_price)
 ```
 
+**Go:**
+```go
+result, err := client.PhoneNumbers.SearchAvailable(context.TODO(), zavudev.PhoneNumberSearchParams{
+    CountryCode: zavudev.String("US"),
+    Type:        zavudev.String("local"),
+    Contains:    zavudev.String("555"),
+    Limit:       zavudev.Int(10),
+})
+for _, number := range result.Items {
+    fmt.Println(number.PhoneNumber, number.Pricing.MonthlyPrice)
+}
+```
+
+**Ruby:**
+```ruby
+result = client.phone_numbers.search_available(country_code: "US", type: "local", contains: "555", limit: 10)
+result.items.each { |number| puts "#{number.phone_number} #{number.pricing.monthly_price}" }
+```
+
+**PHP:**
+```php
+$result = $client->phoneNumbers->searchAvailable([
+    'countryCode' => 'US', 'type' => 'local', 'contains' => '555', 'limit' => 10,
+]);
+foreach ($result->items as $number) {
+    echo $number->phoneNumber . ' ' . $number->pricing->monthlyPrice . "\n";
+}
+```
+
 ## Purchase Phone Number
 
 ```typescript

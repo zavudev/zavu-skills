@@ -44,6 +44,36 @@ result = zavu.broadcasts.create(
 broadcast_id = result.broadcast.id
 ```
 
+**Go:**
+```go
+result, err := client.Broadcasts.Create(context.TODO(), zavudev.BroadcastCreateParams{
+    Name:    zavudev.String("Black Friday Sale"),
+    Channel: zavudev.String("sms"),
+    Text:    zavudev.String("Hi {{name}}, check out our Black Friday deals! Code: FRIDAY20"),
+})
+broadcastID := result.Broadcast.ID
+```
+
+**Ruby:**
+```ruby
+result = client.broadcasts.create(
+    name: "Black Friday Sale",
+    channel: "sms",
+    text: "Hi {{name}}, check out our Black Friday deals! Code: FRIDAY20",
+)
+broadcast_id = result.broadcast.id
+```
+
+**PHP:**
+```php
+$result = $client->broadcasts->create([
+    'name' => 'Black Friday Sale',
+    'channel' => 'sms',
+    'text' => 'Hi {{name}}, check out our Black Friday deals! Code: FRIDAY20',
+]);
+$broadcastId = $result->broadcast->id;
+```
+
 ### Channel Options
 
 | Channel | Description |
