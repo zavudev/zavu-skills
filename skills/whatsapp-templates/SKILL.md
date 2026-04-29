@@ -86,6 +86,25 @@ $template = $client->templates->create([
 ]);
 ```
 
+## Channel-Specific Bodies
+
+Templates can have different bodies per channel. The default `body` is used for WhatsApp; SMS, Telegram, and Instagram fall back to `body` if no channel-specific body is set.
+
+```typescript
+const template = await zavu.templates.create({
+  name: "order_confirmation",
+  language: "en",
+  body: "Hi {{1}}, your order {{2}} has been confirmed and will ship within 24 hours.",
+  smsBody: "Order {{2}} confirmed. Ships in 24h.",       // SMS fallback
+  telegramBody: "✅ Order {{2}} confirmed for {{1}}.",    // Telegram-specific
+  instagramBody: "Order {{2}} confirmed!",               // Instagram-specific
+  whatsappCategory: "UTILITY",
+  variables: ["customer_name", "order_id"],
+});
+```
+
+`whatsappCategory` only applies to the WhatsApp `body`. Channel-specific bodies don't require a category.
+
 ## Template with Buttons
 
 ```typescript

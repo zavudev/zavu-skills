@@ -279,6 +279,16 @@ for (const exec of executions.items) {
 }
 ```
 
+### Execution Statuses
+
+| Status | Description |
+|--------|-------------|
+| `success` | Agent generated response successfully |
+| `error` | Execution failed (LLM error, tool error, etc.) |
+| `filtered` | Response blocked by safety filters |
+| `rate_limited` | Provider rate limit exceeded |
+| `balance_insufficient` | Account balance too low to process |
+
 ## Delete Agent
 
 ```typescript

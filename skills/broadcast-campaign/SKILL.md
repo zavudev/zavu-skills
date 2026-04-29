@@ -17,8 +17,9 @@ draft -> pending_review -> approved -> sending -> completed
                         -> rejected -> escalated (manual review by Zavu team)
                         -> rejected_final
          approved -> scheduled -> sending -> completed
-         sending -> paused
+         sending -> paused (can resume)
          (any active) -> cancelled
+         (any) -> failed (permanent failure)
 ```
 
 ## Step-by-Step Workflow
@@ -87,6 +88,30 @@ $broadcastId = $result->broadcast->id;
 | `instagram` | Instagram Direct |
 | `voice` | Voice call with text-to-speech |
 
+### Message Types
+
+| Type | Description |
+|------|-------------|
+| `text` | Plain text (default) |
+| `image` | Image with optional caption |
+| `video` | Video message |
+| `audio` | Audio message |
+| `document` | Document file |
+| `template` | WhatsApp pre-approved template |
+
+### Email Broadcast (with HTML body)
+
+```typescript
+const result = await zavu.broadcasts.create({
+  name: "Newsletter",
+  channel: "email",
+  emailSubject: "Special offer for {{name}}",
+  text: "Hi {{name}}, check out our latest sale!",   // plain text fallback
+  emailHtmlBody: "<h1>Hi {{name}}!</h1><p>Check out our latest sale.</p>",
+  metadata: { campaign_id: "camp_123", region: "US" },
+});
+```
+
 ### 2. Add Contacts (batch, max 1000/request)
 
 ```typescript
@@ -118,13 +143,19 @@ await zavu.broadcasts.send({
 ```typescript
 const progress = await zavu.broadcasts.progress({ broadcastId });
 console.log(`${progress.percentComplete}% complete`);
-console.log(`Delivered: ${progress.delivered}, Failed: ${progress.failed}`);
+console.log(`Delivered: ${progress.delivered}, Failed: ${progress.failed}, Skipped: ${progress.skipped}`);
 console.log(`Estimated completion: ${progress.estimatedCompletionAt}`);
 ```
+
+Per-contact statuses: `pending`, `queued`, `sending`, `delivered`, `failed`, `skipped` (excluded — opted out, duplicate, or invalid).
 
 ### 5. Handle Rejection (if content review fails)
 
 ```typescript
+// Check remaining review attempts
+const broadcast = await zavu.broadcasts.get({ broadcastId });
+console.log(`Review attempts: ${broadcast.reviewAttempts}/3`);
+
 // Edit content
 await zavu.broadcasts.update({
   broadcastId,

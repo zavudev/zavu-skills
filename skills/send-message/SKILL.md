@@ -151,6 +151,45 @@ await zavu.messages.send({
 });
 ```
 
+### Sticker
+
+```typescript
+await zavu.messages.send({
+  to: "+14155551234",
+  messageType: "sticker",
+  content: { mediaUrl: "https://example.com/sticker.webp" },
+});
+```
+
+### Location
+
+```typescript
+await zavu.messages.send({
+  to: "+14155551234",
+  messageType: "location",
+  content: {
+    latitude: 37.7749,
+    longitude: -122.4194,
+    locationName: "San Francisco",
+    locationAddress: "123 Main St, San Francisco, CA",
+  },
+});
+```
+
+### Contact Card
+
+```typescript
+await zavu.messages.send({
+  to: "+14155551234",
+  messageType: "contact",
+  content: {
+    contacts: [
+      { name: "John Doe", phones: ["+14155551234", "+14155555678"] },
+    ],
+  },
+});
+```
+
 ### Interactive Buttons (max 3)
 
 ```typescript
@@ -201,6 +240,23 @@ await zavu.messages.send({
 });
 ```
 
+### CTA URL (Call-to-Action button)
+
+```typescript
+await zavu.messages.send({
+  to: "+14155551234",
+  messageType: "cta_url",
+  text: "Check out our latest collection",
+  content: {
+    ctaDisplayText: "View Products",          // max 20 chars
+    ctaUrl: "https://example.com/products",
+    ctaHeaderType: "image",                    // optional: text | image | video | document
+    ctaHeaderMediaUrl: "https://example.com/header.jpg",
+    footerText: "Limited time offer",          // optional, max 60 chars
+  },
+});
+```
+
 ### Reaction
 
 ```typescript
@@ -227,6 +283,19 @@ await zavu.messages.send({
   to: "+14155551234",
   text: "Payment confirmed",
   idempotencyKey: "payment_confirm_order_123",
+});
+```
+
+## Disable Automatic Fallback
+
+By default, WhatsApp messages auto-fallback to SMS on failure. To disable:
+
+```typescript
+await zavu.messages.send({
+  to: "+14155551234",
+  channel: "whatsapp",
+  text: "WhatsApp only — no SMS fallback",
+  fallbackEnabled: false,
 });
 ```
 

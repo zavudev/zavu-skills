@@ -11,17 +11,27 @@ Use this skill when building code to create, update, or manage contacts and thei
 
 ## Contact Model
 
-Contacts are multi-channel: one contact can have multiple channels (SMS, WhatsApp, Email, Telegram, Voice), each with its own identifier and delivery metrics.
+Contacts are multi-channel: one contact can have multiple channels (SMS, WhatsApp, Email, Telegram, Voice), each with its own identifier and delivery metrics. Top-level fields expose primary identifiers for quick access.
 
 ```
 Contact (John Doe)
-├── SMS: +14155551234 (primary)
-├── WhatsApp: +14155551234 (primary)
-├── Email: john@example.com (primary)
-├── Email: john.work@company.com (label: "work")
-├── Telegram: @johndoe
-└── Voice: +14155551234
+├── primaryPhone: +14155551234           (E.164)
+├── primaryEmail: john@example.com
+├── profileName: "John D."               (WhatsApp profile name, if available)
+├── verified: true
+├── countryCode: "US"
+└── Channels:
+    ├── SMS: +14155551234 (primary)
+    ├── WhatsApp: +14155551234 (primary)
+    ├── Email: john@example.com (primary)
+    ├── Email: john.work@company.com (label: "work")
+    ├── Telegram: @johndoe
+    └── Voice: +14155551234
 ```
+
+> **Note:** The legacy `phoneNumber` field on Contact is deprecated — use `primaryPhone` instead.
+
+Valid contact channel types: `sms`, `whatsapp`, `email`, `telegram`, `voice` (note: `instagram`, `auto`, `sms_oneway` are message-send channels, not contact channel types).
 
 ## Auto-Creation
 
