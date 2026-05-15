@@ -1,13 +1,25 @@
 ---
 name: ai-agent
-description: Configure AI agents for automated conversational responses with flows, webhook tools, and knowledge bases.
+description: Configure AI agents via the imperative SDK / REST API — for no-code dashboard setups, webhook-based tools, and knowledge bases.
 ---
 
 # AI Agent
 
 ## When to Use
 
-Use this skill when building AI-powered conversational agents that automatically respond to inbound messages. Covers agent setup, provider selection, flows, tools, and knowledge bases (RAG).
+Use this skill when the user wants to configure AI agents through **API calls** (no source files, no deploy step) — typically from a dashboard or a backend script that creates/updates the agent imperatively.
+
+If the user wants a **code-first agent with custom tool handlers** in TypeScript, deployed via the `zavu` CLI, route them to the **`functions`** skill instead. That path is more ergonomic, version-controlled, and has built-in deployment + debugging.
+
+**Quick routing:**
+
+| User says… | Use |
+|---|---|
+| "I want my agent's tool to query my database" / "I want to write the tool handler in code" / `defineTool` / `zavu deploy` | `functions` skill |
+| "Set up an agent that calls a webhook on my server" / "Configure from the dashboard" / "Create an agent via API" | this skill |
+| "I'm starting from scratch and want the simplest path" | `functions` skill (recommended default) |
+
+The imperative API documented here is fully supported and won't be deprecated, but Functions is the recommended path for most new integrations.
 
 ## Architecture
 

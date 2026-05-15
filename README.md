@@ -21,12 +21,13 @@ claude mcp add --transport stdio zavudev_sdk_api \
 
 | Skill | Type | Description |
 |-------|------|-------------|
-| `zavu-rules` | Always loaded | SDK ecosystem, auth, conventions, business rules |
+| `zavu-rules` | Always loaded | SDK ecosystem, CLI tooling, auth, conventions, business rules |
+| `functions` | Workflow + Reference | Zavu Functions: serverless TypeScript with `defineAgent` / `defineTool`, `zavu deploy`, debugging |
 | `send-message` | Workflow | Channel selection decision tree + all message types |
 | `broadcast-campaign` | Workflow | Full broadcast lifecycle: create, review, send, monitor |
 | `webhook-setup` | Reference + Code | Webhook config, signature verification, event handling |
 | `whatsapp-templates` | Reference | Template creation, Meta approval, OTP authentication |
-| `ai-agent` | Reference + Workflow | Agent config, flows, tools, knowledge bases |
+| `ai-agent` | Reference + Workflow | Agent config via the imperative API (dashboard / REST) — for no-code agent setups |
 | `contacts-management` | Reference | Multi-channel contacts, merge, introspection |
 | `phone-numbers` | Reference | Search, purchase, regulatory requirements |
 
