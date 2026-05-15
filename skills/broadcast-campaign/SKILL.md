@@ -7,7 +7,7 @@ description: Create and manage broadcast campaigns for bulk messaging across SMS
 
 ## When to Use
 
-Use this skill when building code to send messages to multiple recipients in a campaign. Covers the full broadcast lifecycle from creation to monitoring.
+Use this skill when building code to send messages to multiple recipients in a campaign — including bulk email. Covers the full broadcast lifecycle from creation to monitoring.
 
 ## Broadcast Lifecycle
 
@@ -84,7 +84,7 @@ $broadcastId = $result->broadcast->id;
 | `sms_oneway` | One-way SMS (no replies) |
 | `whatsapp` | WhatsApp (requires template for non-window contacts) |
 | `telegram` | Telegram |
-| `email` | Email (requires KYC, needs `emailSubject`) |
+| `email` | Email (requires KYC, needs `emailSubject`) — **recommended path for bulk email** |
 | `instagram` | Instagram Direct |
 | `voice` | Voice call with text-to-speech |
 
@@ -100,6 +100,8 @@ $broadcastId = $result->broadcast->id;
 | `template` | WhatsApp pre-approved template |
 
 ### Email Broadcast (with HTML body)
+
+For bulk email campaigns, use `channel: "email"` with an HTML body. This is the recommended way to send mass email through Zavu.
 
 ```typescript
 const result = await zavu.broadcasts.create({
