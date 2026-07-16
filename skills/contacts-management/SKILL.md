@@ -11,7 +11,7 @@ Use this skill when building code to create, update, or manage contacts and thei
 
 ## Contact Model
 
-Contacts are multi-channel: one contact can have multiple channels (SMS, WhatsApp, Email, Telegram, Voice), each with its own identifier and delivery metrics. Top-level fields expose primary identifiers for quick access.
+Contacts are multi-channel: one contact can have multiple channels (SMS, WhatsApp, Email, Telegram, Instagram, Messenger, Voice), each with its own identifier and delivery metrics. Top-level fields expose primary identifiers for quick access.
 
 ```
 Contact (John Doe)
@@ -31,7 +31,7 @@ Contact (John Doe)
 
 > **Note:** The legacy `phoneNumber` field on Contact is deprecated — use `primaryPhone` instead.
 
-Valid contact channel types: `sms`, `whatsapp`, `email`, `telegram`, `voice` (note: `instagram`, `auto`, `sms_oneway` are message-send channels, not contact channel types).
+Valid contact channel types: `sms`, `whatsapp`, `email`, `telegram`, `instagram`, `messenger`, `voice` (note: `auto` and `sms_oneway` are message-send routing options, not contact channel types).
 
 ## Auto-Creation
 

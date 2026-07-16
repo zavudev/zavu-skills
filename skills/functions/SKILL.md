@@ -399,7 +399,7 @@ The auto-provisioned key has `messages:send`, `messages:read`, `contacts:read` s
 
 ## Constraints
 
-- Slug: lowercase alphanumeric + hyphens, max 23 chars (Lambda name limit).
+- Slug: lowercase alphanumeric + hyphens, max 50 chars, unique per project.
 - Source bundle: ≤ 900 KB compressed.
 - Total env size: 4 KB across all secrets.
 - Secret key format: `[A-Z_][A-Z0-9_]*`. Reserved prefixes: `AWS_`, `LAMBDA_`, `_HANDLER`, `_X_AMZN`.

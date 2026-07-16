@@ -21,6 +21,7 @@ Use this skill when setting up webhook endpoints to receive inbound messages, de
 | `message.inbound` | Inbound | Customer sent you a message |
 | `conversation.new` | Inbound | First message from a new contact |
 | `message.unsupported` | Inbound | Unsupported message type received |
+| `message.status` | Inbound | Contact posted a WhatsApp status/story (WhatsApp Alternative only, opt-in) |
 | `message.queued` | Outbound | Message queued for delivery |
 | `message.sent` | Outbound | Message sent to carrier |
 | `message.delivered` | Outbound | Message delivered to recipient |
@@ -29,6 +30,8 @@ Use this skill when setting up webhook endpoints to receive inbound messages, de
 | `broadcast.status_changed` | Broadcasts | Broadcast status changed |
 | `template.status_changed` | Templates | WhatsApp template approval status changed |
 | `invitation.status_changed` | Invitations | Partner invitation status changed |
+| `domain.verified` | Domains | Custom email domain passed verification |
+| `domain.failed` | Domains | Custom email domain failed verification |
 
 ## Configure Webhook via SDK
 
@@ -66,6 +69,8 @@ console.log(result.secret); // whsec_new_secret...
 
 ## Webhook Payload Structure
 
+The top-level envelope is the same for every event; event-specific fields live in `data`. `timestamp` is when Zavu dispatched the webhook (Unix ms).
+
 ```json
 {
   "id": "evt_1705312200000_abc123",
@@ -76,6 +81,47 @@ console.log(result.secret); // whsec_new_secret...
   "data": { }
 }
 ```
+
+## Inbound Message Data (`message.inbound`)
+
+For `message.inbound`, `data` carries the message. On inbound, `to` is your own number (the message's destination) and `from` is the sender.
+
+| Field | Description |
+|-------|-------------|
+| `messageId` | Zavu message ID. |
+| `from` | Sender: the contact for a 1:1, or the participant for a group message. |
+| `to` | Your own number (the message's destination). |
+| `channel` | Delivery channel (`sms`, `whatsapp`, `whatsapp_alt`, `telegram`, `email`, `instagram`, `messenger`, `voice`). |
+| `messageType` | `text`, `image`, `video`, etc. |
+| `text` | Text body or media caption, when present. |
+| `providerTimestamp` | The provider's original receive time (Unix ms) for WhatsApp, Telegram, Instagram, Messenger; `null` for SMS and email. Compare with the top-level `timestamp` to detect delayed deliveries. |
+
+### Group fields (WhatsApp Alternative)
+
+Present on `message.inbound` for group messages. See the `whatsapp-alt` skill.
+
+| Field | Description |
+|-------|-------------|
+| `isGroup` | `true` for a group message (absent/false for a 1:1). |
+| `groupId` | The group's JID (`<id>@g.us`) — the conversation key. |
+| `groupAuthor` | The participant who sent it, in E.164 (same value as `from`). |
+| `groupName` | The group's display name (subject), when known. |
+
+### Reply / quote context
+
+Present on `message.inbound` when the contact replied to (quoted) an earlier message, inside `data.content`.
+
+| Field | Description |
+|-------|-------------|
+| `replyToMessageId` | Zavu message ID of the quoted message. Omitted if the quoted message is not stored in Zavu. |
+| `replyToProviderMessageId` | Provider message ID (WhatsApp WAMID) of the quoted message. Present whenever it is a reply. |
+| `replyToFrom` | Sender of the quoted message (E.164). |
+| `replyToText` | Truncated snippet of the quoted message's text (empty for media). |
+| `replyToMessageType` | Type of the quoted message (`text`, `image`, ...). |
+
+### Story / status events (`message.status`)
+
+Opt-in event (WhatsApp Alternative only) fired when a contact posts a WhatsApp status/story. It is never an inbound message and never enters the inbox — subscribe to `message.status` to receive it. `data` carries `from` (author, E.164), `messageType` (`text`/`image`/`video`/`audio`), `text` (caption/text when present), `mimetype` (media stories), and `providerTimestamp`. Media bytes are not included. See the `whatsapp-alt` skill.
 
 ## Signature Verification
 

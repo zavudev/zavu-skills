@@ -88,7 +88,7 @@ console.log(result.phoneNumber.status); // "active"
 | Type | Description |
 |------|-------------|
 | `local` | Local phone number |
-| `mobile` | Mobile number |
+| `national` | National number |
 | `tollFree` | Toll-free number |
 
 ## Manage Phone Numbers

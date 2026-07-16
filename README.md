@@ -27,6 +27,7 @@ claude mcp add --transport stdio zavudev_sdk_api \
 | `broadcast-campaign` | Workflow | Full broadcast lifecycle: create, review, send, monitor |
 | `webhook-setup` | Reference + Code | Webhook config, signature verification, event handling |
 | `whatsapp-templates` | Reference | Template creation, Meta approval, OTP authentication |
+| `whatsapp-alt` | Workflow + Reference | QR-linked WhatsApp channel: sessions, egress, groups, stories |
 | `ai-agent` | Reference + Workflow | Agent config via the imperative API (dashboard / REST) — for no-code agent setups |
 | `contacts-management` | Reference | Multi-channel contacts, merge, introspection |
 | `phone-numbers` | Reference | Search, purchase, regulatory requirements |

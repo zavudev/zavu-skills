@@ -1,30 +1,56 @@
 ---
 name: send-message
-description: Send messages via SMS, WhatsApp, Email, Telegram, or Voice with channel selection logic.
+description: Send messages via SMS, WhatsApp, WhatsApp Alternative, Email, Telegram, Instagram, Messenger, or Voice with channel selection logic.
 ---
 
 # Send Message
 
 ## When to Use
 
-Use this skill when building code to send messages through the Zavu API. Covers channel selection, message types, and error handling.
+Use this skill when building code to send messages through the Zavu API. Covers channel selection, the recipient (`to`) formats, message types, and error handling.
+
+## Channels
+
+`auto`, `sms`, `sms_oneway`, `whatsapp`, `whatsapp_alt`, `telegram`, `email`, `instagram`, `messenger`, `voice`.
+
+`whatsapp_alt` is the QR-linked WhatsApp Web channel (gated feature, no Meta Business Account, no templates). It has its own lifecycle — see the `whatsapp-alt` skill.
 
 ## Channel Selection Decision Tree
 
 ```
 Is recipient an email address?
   -> YES: channel = "email" (requires KYC verification)
+Is recipient a WhatsApp group JID (<id>@g.us)?
+  -> YES: channel = "whatsapp_alt" (only channel that supports groups)
+Sending from a QR-linked WhatsApp number (no Business Account)?
+  -> YES: channel = "whatsapp_alt" (gated — see whatsapp-alt skill)
 Is message type non-text (image, video, buttons, list, template, etc.)?
   -> YES: channel = "whatsapp" (auto-selected)
 Need voice call / TTS?
   -> YES: channel = "voice"
-Need guaranteed delivery to specific channel?
-  -> YES: channel = "sms" | "whatsapp" | "telegram"
+Recipient is a numeric chat ID (Instagram / Messenger / Telegram)?
+  -> YES: channel = "instagram" | "messenger" | "telegram"
+Need one-way SMS (no inbound replies)?
+  -> YES: channel = "sms_oneway"
+Need guaranteed delivery to a specific channel?
+  -> YES: channel = "sms" | "whatsapp" | "telegram" | "instagram" | "messenger"
 Want cost-optimized routing?
   -> YES: channel = "auto" (ML-powered smart routing)
 Default?
   -> channel = "sms" (or omit for default)
 ```
+
+## Recipient (`to`) formats
+
+The universal `to` field accepts several identifier formats. Routing follows `channel` (or is auto-selected from the identifier when `channel` is omitted).
+
+| Format | Example | Notes |
+|--------|---------|-------|
+| E.164 phone | `+14155551234` | SMS, WhatsApp, WhatsApp Alternative, Voice, Telegram. |
+| Email address | `user@example.com` | Defaults to `email`. |
+| WhatsApp BSUID | `US.13491208655302741918` | Business-scoped user ID. Routed to WhatsApp; use to message a contact who adopted a username and hid their phone number. |
+| WhatsApp group JID | `120363000000000000@g.us` | `whatsapp_alt` channel only (rejected on other channels). |
+| Numeric chat ID | `123456789` | Telegram, Instagram, or Messenger chat/user ID. |
 
 ## Basic Messages
 
@@ -103,6 +129,51 @@ const result = await zavu.messages.send({
   channel: "voice",
   text: "Your verification code is 1 2 3 4 5 6",
   voiceLanguage: "en-US", // optional, auto-detected from country code
+});
+```
+
+### One-Way SMS
+
+Use `sms_oneway` when replies are not expected (no inbound path back to you).
+
+```typescript
+await zavu.messages.send({
+  to: "+14155551234",
+  channel: "sms_oneway",
+  text: "Your appointment is confirmed for 3pm.",
+});
+```
+
+### Instagram / Messenger
+
+Target a numeric chat/user ID (from an inbound conversation).
+
+```typescript
+// Instagram Direct
+await zavu.messages.send({
+  to: "17841400000000000",
+  channel: "instagram",
+  text: "Hello from Zavu via Instagram!",
+});
+
+// Messenger (Facebook Page / Marketplace chat)
+await zavu.messages.send({
+  to: "24025631120151183",
+  channel: "messenger",
+  text: "Hello from Zavu via Messenger!",
+});
+```
+
+### WhatsApp Alternative
+
+QR-linked WhatsApp Web channel. Requires a linked session on the sender (see the `whatsapp-alt` skill for the full lifecycle).
+
+```typescript
+await zavu.messages.send({
+  to: "+14155551234",
+  channel: "whatsapp_alt",
+  text: "Hello from Zavu!",
+  "Zavu-Sender": "sender_12345",
 });
 ```
 
@@ -229,6 +300,8 @@ await zavu.messages.send({
 
 ### Template Message
 
+`templateVariables` fill body placeholders (keyed by position `1`, `2`, ... for positional templates, or by name for named ones — do not mix). `templateButtonVariables` fill dynamic URL/OTP button placeholders (keyed by button index `0`, `1`, `2`). `templateHeaderVariables` set a text-header variable (keyed by `1`).
+
 ```typescript
 await zavu.messages.send({
   to: "+14155551234",
@@ -236,6 +309,7 @@ await zavu.messages.send({
   content: {
     templateId: "tpl_abc123",
     templateVariables: { "1": "John", "2": "ORD-12345" },
+    templateButtonVariables: { "0": "abc-report-token" }, // optional: dynamic URL/OTP buttons
   },
 });
 ```
@@ -264,6 +338,16 @@ await zavu.messages.react({
   messageId: "msg_abc123",
   emoji: "\ud83d\udc4d",
 });
+```
+
+## Typing Indicator
+
+Mark an inbound WhatsApp message as read and show a typing indicator while you prepare a reply (`POST /v1/messages/{messageId}/typing`). It clears automatically when you send a reply or after 25 seconds. Only valid for inbound WhatsApp messages. Use it when a reply takes more than a couple of seconds (LLM agent, tool call, lookup).
+
+```bash
+curl -X POST https://api.zavu.dev/v1/messages/MESSAGE_ID/typing \
+  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Zavu-Sender: sender_12345"
 ```
 
 ## Sender Override
