@@ -89,12 +89,25 @@ For `message.inbound`, `data` carries the message. On inbound, `to` is your own 
 | Field | Description |
 |-------|-------------|
 | `messageId` | Zavu message ID. |
+| `conversationId` | Inbox thread id. `null` while the thread is still being created (use `conversation.new`'s id, or `GET /v1/messages/{id}`). See "Deep-linking to the inbox" below. |
 | `from` | Sender: the contact for a 1:1, or the participant for a group message. |
 | `to` | Your own number (the message's destination). |
 | `channel` | Delivery channel (`sms`, `whatsapp`, `whatsapp_alt`, `telegram`, `email`, `instagram`, `messenger`, `voice`). |
 | `messageType` | `text`, `image`, `video`, etc. |
 | `text` | Text body or media caption, when present. |
 | `providerTimestamp` | The provider's original receive time (Unix ms) for WhatsApp, Telegram, Instagram, Messenger; `null` for SMS and email. Compare with the top-level `timestamp` to detect delayed deliveries. |
+
+### Deep-linking to the inbox
+
+Both `message.inbound` and `conversation.new` carry a `conversationId` in `data` — the id of the inbox thread. Build a direct link so your team can open the conversation in the Zavu dashboard:
+
+```
+https://dashboard.zavu.dev/{locale}/inbox?conv={conversationId}
+```
+
+`{locale}` is the dashboard UI language (e.g. `en`, `es`).
+
+On `message.inbound`, `conversationId` is `null` while the conversation row is still being created — on the first message of a brand-new thread, and, if several messages from a never-seen address arrive near-simultaneously, on each of those (only one `conversation.new` is emitted). Recover the id from `conversation.new`, or fetch it any time from `GET /v1/messages/{messageId}`, whose `conversationId` is always populated.
 
 ### Group fields (WhatsApp Alternative)
 
@@ -118,6 +131,36 @@ Present on `message.inbound` when the contact replied to (quoted) an earlier mes
 | `replyToFrom` | Sender of the quoted message (E.164). |
 | `replyToText` | Truncated snippet of the quoted message's text (empty for media). |
 | `replyToMessageType` | Type of the quoted message (`text`, `image`, ...). |
+
+### Email attachments
+
+Inbound emails arrive as `message.inbound` with `channel: "email"` and `messageType: "text"`. The webhook payload carries only the body (`text`, and `htmlBody` on the fetched message) — it does **not** include attachment data. Attachments are stored separately and fetched on demand.
+
+To retrieve them, call `GET /v1/messages/{messageId}/attachments` with the `messageId` from the webhook. It returns each attachment's metadata plus a short-lived signed `downloadUrl` (regenerated on every request — fetch promptly, don't cache the URL). This also works for outbound emails you sent with attachments. Messages without stored attachments return an empty list.
+
+```bash
+curl https://api.zavu.dev/v1/messages/MESSAGE_ID/attachments \
+  -H "Authorization: Bearer $ZAVU_API_KEY"
+```
+
+```json
+{
+  "items": [
+    {
+      "id": "att_abc123",
+      "filename": "invoice.pdf",
+      "mimeType": "application/pdf",
+      "size": 102400,
+      "contentId": null,
+      "isInline": false,
+      "downloadUrl": "https://...signed-url...",
+      "createdAt": "2024-01-15T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+Inline images embedded in the HTML body have `isInline: true` and a `contentId` referenced in `htmlBody` as `cid:<contentId>`.
 
 ### Story / status events (`message.status`)
 
