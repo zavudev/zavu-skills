@@ -1,6 +1,6 @@
 ---
 name: send-message
-description: Send messages via SMS, WhatsApp, WhatsApp Alternative, Email, Telegram, Instagram, Messenger, or Voice with channel selection logic.
+description: Send messages via SMS, WhatsApp, Email, Telegram, Instagram, Messenger, or Voice with channel selection logic.
 ---
 
 # Send Message
@@ -11,19 +11,13 @@ Use this skill when building code to send messages through the Zavu API. Covers 
 
 ## Channels
 
-`auto`, `sms`, `sms_oneway`, `whatsapp`, `whatsapp_alt`, `telegram`, `email`, `instagram`, `messenger`, `voice`.
-
-`whatsapp_alt` is the QR-linked WhatsApp Web channel (gated feature, no Meta Business Account, no templates). It has its own lifecycle — see the `whatsapp-alt` skill.
+`auto`, `sms`, `sms_oneway`, `whatsapp`, `telegram`, `email`, `instagram`, `messenger`, `voice`.
 
 ## Channel Selection Decision Tree
 
 ```
 Is recipient an email address?
   -> YES: channel = "email" (requires KYC verification)
-Is recipient a WhatsApp group JID (<id>@g.us)?
-  -> YES: channel = "whatsapp_alt" (only channel that supports groups)
-Sending from a QR-linked WhatsApp number (no Business Account)?
-  -> YES: channel = "whatsapp_alt" (gated — see whatsapp-alt skill)
 Is message type non-text (image, video, buttons, list, template, etc.)?
   -> YES: channel = "whatsapp" (auto-selected)
 Need voice call / TTS?
@@ -46,10 +40,9 @@ The universal `to` field accepts several identifier formats. Routing follows `ch
 
 | Format | Example | Notes |
 |--------|---------|-------|
-| E.164 phone | `+14155551234` | SMS, WhatsApp, WhatsApp Alternative, Voice, Telegram. |
+| E.164 phone | `+14155551234` | SMS, WhatsApp, Voice, Telegram. |
 | Email address | `user@example.com` | Defaults to `email`. |
 | WhatsApp BSUID | `US.13491208655302741918` | Business-scoped user ID. Routed to WhatsApp; use to message a contact who adopted a username and hid their phone number. |
-| WhatsApp group JID | `120363000000000000@g.us` | `whatsapp_alt` channel only (rejected on other channels). |
 | Numeric chat ID | `123456789` | Telegram, Instagram, or Messenger chat/user ID. |
 
 ## Basic Messages
@@ -161,19 +154,6 @@ await zavu.messages.send({
   to: "24025631120151183",
   channel: "messenger",
   text: "Hello from Zavu via Messenger!",
-});
-```
-
-### WhatsApp Alternative
-
-QR-linked WhatsApp Web channel. Requires a linked session on the sender (see the `whatsapp-alt` skill for the full lifecycle).
-
-```typescript
-await zavu.messages.send({
-  to: "+14155551234",
-  channel: "whatsapp_alt",
-  text: "Hello from Zavu!",
-  "Zavu-Sender": "sender_12345",
 });
 ```
 

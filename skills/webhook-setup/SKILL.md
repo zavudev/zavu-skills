@@ -21,7 +21,6 @@ Use this skill when setting up webhook endpoints to receive inbound messages, de
 | `message.inbound` | Inbound | Customer sent you a message |
 | `conversation.new` | Inbound | First message from a new contact |
 | `message.unsupported` | Inbound | Unsupported message type received |
-| `message.status` | Inbound | Contact posted a WhatsApp status/story (WhatsApp Alternative only, opt-in) |
 | `message.queued` | Outbound | Message queued for delivery |
 | `message.sent` | Outbound | Message sent to carrier |
 | `message.delivered` | Outbound | Message delivered to recipient |
@@ -92,7 +91,7 @@ For `message.inbound`, `data` carries the message. On inbound, `to` is your own 
 | `conversationId` | Inbox thread id. `null` while the thread is still being created (use `conversation.new`'s id, or `GET /v1/messages/{id}`). See "Deep-linking to the inbox" below. |
 | `from` | Sender: the contact for a 1:1, or the participant for a group message. |
 | `to` | Your own number (the message's destination). |
-| `channel` | Delivery channel (`sms`, `whatsapp`, `whatsapp_alt`, `telegram`, `email`, `instagram`, `messenger`, `voice`). |
+| `channel` | Delivery channel (`sms`, `whatsapp`, `telegram`, `email`, `instagram`, `messenger`, `voice`). |
 | `messageType` | `text`, `image`, `video`, etc. |
 | `text` | Text body or media caption, when present. |
 | `providerTimestamp` | The provider's original receive time (Unix ms) for WhatsApp, Telegram, Instagram, Messenger; `null` for SMS and email. Compare with the top-level `timestamp` to detect delayed deliveries. |
@@ -108,17 +107,6 @@ https://dashboard.zavu.dev/{locale}/inbox?conv={conversationId}
 `{locale}` is the dashboard UI language (e.g. `en`, `es`).
 
 On `message.inbound`, `conversationId` is `null` while the conversation row is still being created — on the first message of a brand-new thread, and, if several messages from a never-seen address arrive near-simultaneously, on each of those (only one `conversation.new` is emitted). Recover the id from `conversation.new`, or fetch it any time from `GET /v1/messages/{messageId}`, whose `conversationId` is always populated.
-
-### Group fields (WhatsApp Alternative)
-
-Present on `message.inbound` for group messages. See the `whatsapp-alt` skill.
-
-| Field | Description |
-|-------|-------------|
-| `isGroup` | `true` for a group message (absent/false for a 1:1). |
-| `groupId` | The group's JID (`<id>@g.us`) — the conversation key. |
-| `groupAuthor` | The participant who sent it, in E.164 (same value as `from`). |
-| `groupName` | The group's display name (subject), when known. |
 
 ### Reply / quote context
 
@@ -161,10 +149,6 @@ curl https://api.zavu.dev/v1/messages/MESSAGE_ID/attachments \
 ```
 
 Inline images embedded in the HTML body have `isInline: true` and a `contentId` referenced in `htmlBody` as `cid:<contentId>`.
-
-### Story / status events (`message.status`)
-
-Opt-in event (WhatsApp Alternative only) fired when a contact posts a WhatsApp status/story. It is never an inbound message and never enters the inbox — subscribe to `message.status` to receive it. `data` carries `from` (author, E.164), `messageType` (`text`/`image`/`video`/`audio`), `text` (caption/text when present), `mimetype` (media stories), and `providerTimestamp`. Media bytes are not included. See the `whatsapp-alt` skill.
 
 ## Signature Verification
 
