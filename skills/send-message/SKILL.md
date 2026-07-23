@@ -410,6 +410,11 @@ do {
 | `url_shortener_blocked` | URL shortener detected | Use full destination URL |
 | `email_kyc_required` | Email needs KYC | Complete verification in dashboard |
 | `urls_blocked_unverified` | Unverified account + URLs | Complete KYC verification |
+| `EMAIL_INVALID_RECIPIENT` | Malformed email address (async, on the failed message) | Fix the address; pre-check lists with `POST /v1/introspect/email` |
+| `EMAIL_DOMAIN_NOT_FOUND` | Recipient domain has no MX or A records (async) | Remove the address; the send would hard bounce |
+| `EMAIL_RECIPIENT_SUPPRESSED` | Address bounced or complained before (async) | Remove it from your lists |
+
+Email sends are pre-validated automatically at dispatch: guaranteed hard bounces (bad syntax, dead domain, suppressed address) are failed with the codes above instead of being sent, so they never hurt your bounce rate. These surface asynchronously on the message (`status: "failed"` + `errorCode`) and in the `message.failed` webhook. Advisory signals (role addresses like `info@`, disposable domains) never block a send — check them upfront with `POST /v1/introspect/email`.
 
 ## Constraints
 

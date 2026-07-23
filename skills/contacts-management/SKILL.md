@@ -1,13 +1,13 @@
 ---
 name: contacts-management
-description: Manage multi-channel contacts with channel operations, merge suggestions, and phone introspection.
+description: Manage multi-channel contacts with channel operations, merge suggestions, phone introspection, and email validation.
 ---
 
 # Contacts Management
 
 ## When to Use
 
-Use this skill when building code to create, update, or manage contacts and their communication channels. Covers the multi-channel contact model, merge operations, and phone number introspection.
+Use this skill when building code to create, update, or manage contacts and their communication channels. Covers the multi-channel contact model, merge operations, phone number introspection, and email address validation.
 
 ## Contact Model
 
@@ -236,6 +236,65 @@ puts result.valid_number, result.line_type, result.carrier&.name
 $result = $client->introspect->phone(['phoneNumber' => '+14155551234']);
 echo $result->validNumber, $result->lineType, $result->carrier?->name;
 ```
+
+## Email Validation
+
+Validate email addresses before sending to keep your bounce rate low. Catches invalid syntax, dead domains (no MX/A records), disposable inboxes, role-based addresses (`info@`, `contacto@`, `sales@`), and addresses already on your project's suppression list. No SMTP mailbox probe is performed: `deliverable` means no negative signal was found, not a delivery guarantee.
+
+Not yet generated in the SDKs — use the REST endpoint directly:
+
+```bash
+# Single address
+curl -X POST https://api.zavu.dev/v1/introspect/email \
+  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "maria@example.com"}'
+
+# Batch (max 100 per request)
+curl -X POST https://api.zavu.dev/v1/introspect/email \
+  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"emails": ["maria@example.com", "info@deaddomain.example", "not-an-email"]}'
+```
+
+Response:
+
+```json
+{
+  "results": [
+    {
+      "email": "maria@example.com",
+      "normalized": "maria@example.com",
+      "domain": "example.com",
+      "verdict": "deliverable",
+      "reasons": []
+    },
+    {
+      "email": "info@deaddomain.example",
+      "normalized": "info@deaddomain.example",
+      "domain": "deaddomain.example",
+      "verdict": "undeliverable",
+      "reasons": ["domain_not_found", "role_address"]
+    },
+    {
+      "email": "not-an-email",
+      "normalized": null,
+      "domain": null,
+      "verdict": "undeliverable",
+      "reasons": ["invalid_syntax"]
+    }
+  ],
+  "summary": { "total": 3, "deliverable": 1, "risky": 0, "undeliverable": 2 }
+}
+```
+
+Verdicts:
+
+- `deliverable` — no negative signal found.
+- `risky` — sendable, but a signal predicts elevated bounce/complaint odds: `role_address`, `disposable_domain`, `domain_no_mx` (domain resolves but has no MX records), or `suppressed_soft_bounce`.
+- `undeliverable` — drop these: `invalid_syntax`, `domain_not_found`, or suppressed after a hard bounce/complaint (`suppressed_hard_bounce`, `suppressed_complaint`, `suppressed_manual`, `suppressed_unsubscribe`).
+
+Typical flow before a broadcast: validate the list, drop `undeliverable`, review `risky`, then add only the clean recipients.
 
 ## Constraints
 
