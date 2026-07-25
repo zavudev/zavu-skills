@@ -27,6 +27,7 @@ code is the same agent.
 ```bash
 zavu agents catalog                     # what's available
 zavu agents pull kepler --dir kepler    # scaffold it locally
+# booking agents: add --calendar calcom for a working Cal.com client
 cd kepler
 npm install                             # types + local runs
 zavu senders list                       # find your sender id
