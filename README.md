@@ -22,7 +22,7 @@ claude mcp add --transport stdio zavudev_sdk_api \
 | Skill | Type | Description |
 |-------|------|-------------|
 | `zavu-rules` | Always loaded | SDK ecosystem, CLI tooling, auth, conventions, business rules |
-| `functions` | Workflow + Reference | Zavu Functions: serverless TypeScript with `defineAgent` / `defineTool`, `zavu deploy`, debugging |
+| `functions` | Workflow + Reference | Zavu Functions: serverless TypeScript with `defineAgent` / `defineTool`, `npx zavudev deploy`, debugging |
 | `send-message` | Workflow | Channel selection decision tree + all message types |
 | `broadcast-campaign` | Workflow | Full broadcast lifecycle: create, review, send, monitor |
 | `webhook-setup` | Reference + Code | Webhook config, signature verification, event handling |

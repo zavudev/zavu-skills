@@ -22,7 +22,7 @@ Zavu is a unified multi-channel messaging API. One API to send messages via SMS,
 | Tool | Purpose | Install |
 |------|---------|---------|
 | `zavu` CLI | Interact with the API from the terminal; manage Zavu Functions (serverless TypeScript on Zavu Cloud) | `brew install zavudev/tools/zavu` |
-| `@zavu/functions` | Runtime package for Zavu Functions. Provides `defineAgent`, `defineTool`, `defineFunction` declarative APIs. | Pre-installed in the function runtime — `import { defineAgent } from "@zavu/functions"` (no install needed). |
+| `@zavudev/functions` | Runtime package for Zavu Functions. Provides `defineAgent`, `defineTool`, `defineFunction` declarative APIs. | Pre-installed in the function runtime — `import { defineAgent } from "@zavudev/functions"` (no install needed). |
 
 The CLI is the primary interface for **Zavu Functions**: serverless TypeScript that runs on Zavu Cloud and lets you declare AI agents + tool handlers in code. See the `functions` skill for full coverage.
 
@@ -127,6 +127,7 @@ except APIError as e:
 4. **URL shorteners blocked**: bit.ly, t.co, etc. are always blocked. Use full destination URLs.
 5. **Smart routing**: Channel `auto` uses ML to pick the best channel based on cost, deliverability, and contact preferences.
 6. **Fallback**: If WhatsApp fails, messages can automatically fall back to SMS (enabled by default).
+7. **Voice agents**: An agent can answer and place phone calls when its `voice` config has `enabled: true`. Place outbound calls via `/v1/calls` and fetch transcripts from `/v1/calls/{callId}`. Requires the Voice Agents feature and a live key. See the `ai-agent` skill.
 
 ## MCP Server
 

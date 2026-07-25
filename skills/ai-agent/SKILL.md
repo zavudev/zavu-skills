@@ -15,7 +15,7 @@ If the user wants a **code-first agent with custom tool handlers** in TypeScript
 
 | User says… | Use |
 |---|---|
-| "I want my agent's tool to query my database" / "I want to write the tool handler in code" / `defineTool` / `zavu deploy` | `functions` skill |
+| "I want my agent's tool to query my database" / "I want to write the tool handler in code" / `defineTool` / `npx zavudev deploy` | `functions` skill |
 | "Set up an agent that calls a webhook on my server" / "Configure from the dashboard" / "Create an agent via API" | this skill |
 | "I'm starting from scratch and want the simplest path" | `functions` skill (recommended default) |
 
@@ -126,6 +126,92 @@ await zavu.senders.agent.update({
 });
 ```
 
+## Voice
+
+The agent can also answer and place **phone calls** through Zavu's co-located voice network (speech recognition, the agent's LLM, and speech synthesis, with real-time interruption handling). The `systemPrompt`, tools, and knowledge bases all apply on a call — voice just adds a spoken channel on top. For a code-first voice agent declared in TypeScript, use the `functions` skill instead.
+
+**Requirements**
+
+- The Voice Agents feature must be enabled for your team (call endpoints return `403` otherwise).
+- The agent must have `voice.enabled: true`.
+- Not available with test-mode keys — use a live (`zv_live_...`) key.
+- Calls are billed per connected minute plus telephony, deducted from your prepaid balance.
+
+### Enable voice on an agent
+
+Voice lives under the agent's `voice` object on `POST`/`PATCH /v1/senders/{senderId}/agent`. The SDK does not type the `voice` field yet, so set it over REST:
+
+```bash
+curl -X PATCH https://api.zavu.dev/v1/senders/snd_abc123/agent \
+  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "voice": {
+      "enabled": true,
+      "greeting": "Hi, thanks for calling Acme. How can I help you today?",
+      "language": "en",
+      "ttsVoice": "aria",
+      "interruptible": true,
+      "maxCallDurationMinutes": 15,
+      "maxIdleSeconds": 30,
+      "voicemailAction": "hangup",
+      "transferPhoneNumber": "+14155551234"
+    }
+  }'
+```
+
+| Field | Description |
+|-------|-------------|
+| `enabled` | Whether the agent handles calls. Required. When false, its number is not answered and outbound calls are rejected. |
+| `greeting` | Opening line spoken when the call connects (max 1000). If omitted, the agent waits for the caller to speak first. |
+| `language` | BCP-47 code for recognition and synthesis (e.g. `en`, `es`, `pt-BR`). Auto-detected from the recipient when omitted. |
+| `ttsVoice` | Name of the Zavu voice for synthesis. Neutral default when omitted. |
+| `interruptible` | Caller can barge in while the agent is speaking. Default `true`. |
+| `maxCallDurationMinutes` | Hard call-length cap, 1-120. Default 15. |
+| `maxIdleSeconds` | Silence before the agent ends the call, 5-300. Default 30. |
+| `voicemailAction` | On an answering machine (outbound): `hangup` or `leave_message`. Default `hangup`. |
+| `voicemailMessage` | Spoken when `voicemailAction` is `leave_message` (max 1000). Falls back to `greeting`. |
+| `transferPhoneNumber` | E.164 number the agent can transfer the call to. Setting it gives the agent a transfer tool. |
+
+Once enabled, the sender's number answers inbound calls automatically.
+
+### Place an outbound call
+
+There is no `calls` resource in the SDK yet — call the REST endpoint directly. `to` is the only required field; `senderId` defaults to the project's default sender (whose agent must have voice enabled).
+
+```bash
+curl -X POST https://api.zavu.dev/v1/calls \
+  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "+56912345678",
+    "senderId": "snd_abc123",
+    "greeting": "Hi, this is Acme calling about your appointment.",
+    "maxDurationMinutes": 10,
+    "metadata": { "campaign": "appointment_reminders" }
+  }'
+```
+
+Returns `202` with the call object as it starts dialing. `greeting` and `maxDurationMinutes` override the agent's config for this call only.
+
+### Fetch a call and its transcript
+
+```bash
+# Single call, including the ordered transcript
+curl https://api.zavu.dev/v1/calls/call_abc123 \
+  -H "Authorization: Bearer $ZAVU_API_KEY"
+
+# List recent calls (filter by status / direction)
+curl "https://api.zavu.dev/v1/calls?direction=outbound&status=completed&limit=50" \
+  -H "Authorization: Bearer $ZAVU_API_KEY"
+
+# Hang up an active (ringing or in-progress) call
+curl -X POST https://api.zavu.dev/v1/calls/call_abc123/hangup \
+  -H "Authorization: Bearer $ZAVU_API_KEY"
+```
+
+The transcript is a list of turns, each `{ seq, role, text }` where `role` is `user`, `assistant`, or `tool`. It is included when fetching a single call and omitted from the list. `durationSeconds`, `endReason`, `turnCount`, and `cost` populate once the call ends.
+
 ## Conversational Flows
 
 Flows handle structured conversations (keyword triggers, data collection):
@@ -218,7 +304,14 @@ await zavu.senders.agent.flows.delete({
 
 ## Webhook Tools
 
-Tools let the agent call your backend during conversations:
+Tools let the agent call your backend during conversations.
+
+> **Which channels actually call them.** Tools are offered to the model on
+> **voice**, and inside a flow's `tool` step. The plain **text** path does not
+> offer tools at all — a text agent asked to look something up will answer
+> "let me check that, one moment" and then do nothing. Attaching a tool to a
+> text-only agent syncs the row and changes no behaviour. Use a flow if you
+> need a text agent to reach your backend.
 
 ```typescript
 const result = await zavu.senders.agent.tools.create({
@@ -245,6 +338,23 @@ await zavu.senders.agent.tools.test({
 ```
 
 ## Knowledge Bases (RAG)
+
+A prompt that says "only state what the documentation returns" with no documents
+attached does not refuse — it invents. Attach the documents, then verify with
+`agents test`, which reports how many chunks it actually retrieved.
+
+From the CLI:
+
+```bash
+zavu agents knowledge-bases create --sender snd_abc123 --name "Product docs"
+zavu agents knowledge-bases documents add --sender snd_abc123 --kb <kbId> \
+  --title "Pricing" --content-file ./pricing.md
+zavu agents knowledge-bases documents list --sender snd_abc123 --kb <kbId>
+```
+
+Processing takes a few seconds; `isProcessed` flips to true and `chunkCount`
+fills in.
+
 
 Add documents for the agent to reference via retrieval-augmented generation:
 
@@ -301,6 +411,76 @@ for (const exec of executions.items) {
 | `rate_limited` | Provider rate limit exceeded |
 | `balance_insufficient` | Account balance too low to process |
 
+## Agents are addressed by their own id
+
+An agent is a standalone object. It can answer on several senders, and it can
+exist with none while you build it.
+
+```bash
+zavu agents list                 # every agent in the project, with ids
+zavu agents list --json
+```
+
+```
+id                                name        kind   enabled  senders  model
+qd75detym58c6has4sfrye3vws8b6ygt  Atlas       voice  yes      1        openai/gpt-4o-mini
+qd7ck28evcskdc3xx4wzevtmeh8b6bcm  Pizza Desk  text   no       0        gpt-4o-mini
+```
+
+Over REST:
+
+| | |
+|---|---|
+| `GET /v1/agents` | List, including agents with no sender |
+| `POST /v1/agents` | Create standalone — no sender required |
+| `GET /v1/agents/{agentId}` | Fetch one |
+| `PATCH /v1/agents/{agentId}` | Update |
+| `DELETE /v1/agents/{agentId}` | Delete |
+| `POST /v1/agents/{agentId}/test` | Run it, return the reply, deliver nothing |
+
+The older `/v1/senders/{senderId}/agent` routes still work, but they resolve a
+sender to exactly ONE agent — so they cannot reach an agent that has no sender,
+or the second agent on a shared one.
+
+### Connecting senders
+
+```bash
+zavu agents senders connect    --agent <agentId> --sender <senderId>
+zavu agents senders disconnect --agent <agentId> --sender <senderId>
+```
+
+`POST /v1/agents/{agentId}/senders` with `{"senderId": "..."}`, and
+`DELETE /v1/agents/{agentId}/senders/{senderId}`.
+
+**A sender answers with at most one agent.** Connecting one that is already in
+use returns `400` naming the agent that holds it — the alternative would be an
+agent that looks connected and never receives a message.
+
+## Test an agent without sending anything
+
+```bash
+zavu agents test --agent <agentId> --message "where is order ORD-001?"
+```
+
+Runs the real prompt, model and knowledge base and prints what the agent
+*would* reply, plus tokens, latency and how many knowledge chunks were used.
+Nothing is delivered, nothing is charged, no execution is logged — safe to run
+in a loop while iterating on a prompt.
+
+It also warns about what a dry run cannot prove: an agent that is disabled,
+tools its channels will never call, and contact metadata that will exist live
+but not here. Treat those warnings as part of the result.
+
+Multi-turn and isolating the prompt from retrieval:
+
+```bash
+zavu agents test --agent <agentId> \
+  --turn "I need to change my booking" --turn "Sure — which one?" \
+  --message "the one on Friday"
+
+zavu agents test --agent <agentId> --message "what do you cost?" --no-knowledge
+```
+
 ## Delete Agent
 
 ```typescript
@@ -309,7 +489,10 @@ await zavu.senders.agent.delete({ senderId: "snd_abc123" });
 
 ## Constraints
 
-- One agent per sender
+- **One agent per sender.** Writes do not enforce it — a second agent can be
+  created on a sender — but every read resolves a sender to exactly ONE agent,
+  so the extra one answers nothing and is invisible to `agents get`. `zavu
+  deploy` warns when it happens.
 - System prompt: max 10,000 characters
 - Context window: 1-50 messages
 - Temperature: 0-2
