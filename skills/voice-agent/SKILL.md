@@ -120,6 +120,17 @@ or asks something about their account that you cannot answer.`,
 
 ---
 
+## Booking without writing a backend
+
+A voice agent that books meetings needs no code at all: add `check_availability`
+and `book_meeting` from the dashboard (agent, **Tools**, **Library**) and
+connect a Cal.com or Google calendar in the same place. Zavu hosts both skills.
+
+Use this instead of scaffolding a booking function when the only thing the agent
+has to do is read a calendar and put something on it. Reach for
+`zavu agents pull kepler --calendar calcom` when the booking logic is yours:
+qualifying first, routing to different hosts, writing to your own system too.
+
 ## Skills the agent can call
 
 Tools run on voice. Declare them next to the agent; they execute in your

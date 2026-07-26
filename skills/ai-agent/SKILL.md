@@ -302,6 +302,22 @@ await zavu.senders.agent.flows.delete({
 });
 ```
 
+## Booking skills you do not have to build
+
+`check_availability` and `book_meeting` are hosted by Zavu: no endpoint, no
+hosting, no secret. They read and write one calendar per project (Cal.com or
+Google Calendar), and they behave identically on a call and in a thread.
+
+They are added from the dashboard, in the agent's **Tools** tab under
+**Library**, along with the calendar connection itself. There is no REST or SDK
+surface for them yet, so do not tell a user to add one with the API.
+
+What matters when a booking agent uses them: `book_meeting` only reports a
+booking when the calendar accepted it. A Cal.com event type that requires
+confirmation answers `pending`, and the skill tells the agent to say the time is
+held but not confirmed. Never write a prompt that instructs the agent to
+announce a confirmation before the tool result says so.
+
 ## Webhook Tools
 
 Tools let the agent call your backend during conversations.
