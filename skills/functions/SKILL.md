@@ -220,6 +220,22 @@ The scaffold is a real TypeScript project: `zavu init` and `zavu agents pull`
 write a `tsconfig.json` and a `package.json` that declares `@zavudev/functions`,
 `typescript` and `@types/node` as devDependencies.
 
+### Exposing a function over HTTP
+
+A function that needs its own endpoint — a webhook you host, a tool URL you
+control — is created with `--http`:
+
+```sh
+npx zavudev fn init --template blank --http
+npx zavudev agents pull kepler --sender "$SENDER_ID" --http
+```
+
+The public URL exists once something is deployed behind it, so it is printed
+after your first `deploy`, not at scaffold time.
+
+This is set **at creation**. Turning HTTP on for a function that already exists
+is still a dashboard action.
+
 **Run `npm install` before anything local.** Nothing resolves until you do:
 
 ```sh
@@ -261,6 +277,9 @@ the exact field and the expected shape, and never calls the handler:
    • "score" must be one of "hot" | "warm" | "cold", got "banana"
   expected: { orderId: string, score: hot|warm|cold, notes: string? }
 ```
+
+If the project's dependencies are not installed, this stops with a note telling
+you to run `npm install` rather than surfacing Bun's raw module-resolution error.
 
 Exit codes are worth branching on: **2** means you called it wrong (unknown
 tool, arguments that fail the schema), **1** means the handler itself threw, **0**
