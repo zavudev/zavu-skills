@@ -246,6 +246,42 @@ npx zavudev fn http enable
 npx zavudev fn http disable
 ```
 
+#### The HTTP event is not a Zavu event
+
+This is the one shape that will cost you a deploy if you assume it. An HTTP
+invocation delivers the **raw API Gateway v2 payload**, not the `{ type, data }`
+event that triggers deliver. `event.type` and `event.data` are `undefined`, and
+the body arrives as a **string** under `event.body`:
+
+```json
+{
+  "version": "2.0",
+  "rawPath": "/",
+  "headers": { "content-type": "application/json" },
+  "requestContext": { "http": { "method": "POST" } },
+  "body": "{\"action\":\"availability\"}",
+  "isBase64Encoded": false
+}
+```
+
+So read it like this, and check the method from `requestContext`:
+
+```ts
+export default defineFunction({
+  handler: async (event: any) => {
+    const method = event?.requestContext?.http?.method ?? "GET"
+    const raw = event?.isBase64Encoded
+      ? Buffer.from(event.body ?? "", "base64").toString("utf8")
+      : event?.body
+    const payload = typeof raw === "string" && raw ? JSON.parse(raw) : {}
+    return { statusCode: 200, body: JSON.stringify({ ok: true, method, payload }) }
+  },
+})
+```
+
+Typing the handler as a Zavu event compiles cleanly and then reads `undefined`
+in production — the failure the runtime package's own types warn about.
+
 **Run `npm install` before anything local.** Nothing resolves until you do:
 
 ```sh
@@ -290,6 +326,17 @@ the exact field and the expected shape, and never calls the handler:
 
 If the project's dependencies are not installed, this stops with a note telling
 you to run `npm install` rather than surfacing Bun's raw module-resolution error.
+
+**Secrets are not injected.** The API returns each secret's key and last four
+characters, never its value, so `fn invoke` cannot fetch them — including with
+`--live`. Put them in a `.env` next to `index.ts` (it is read automatically) or
+export them in your shell. Without that, a handler that reads
+`process.env.SOMETHING` takes its unconfigured branch and returns a plausible
+failure like `{ ok: false, reason: "not_configured" }`, which reads as a bug in
+your code and is not one. The command warns and names the missing keys.
+
+`--live` makes the SDK calls real instead of stubbing them. Everything is mocked
+by default, so nothing is sent until you ask for it.
 
 Exit codes are worth branching on: **2** means you called it wrong (unknown
 tool, arguments that fail the schema), **1** means the handler itself threw, **0**
