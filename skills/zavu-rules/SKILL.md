@@ -88,7 +88,7 @@ $client = new Client(apiKey: getenv('ZAVUDEV_API_KEY'));
 
 - **Phone numbers**: Always E.164 format (`+14155551234`)
 - **Channels**: `auto`, `sms`, `sms_oneway`, `whatsapp`, `telegram`, `email`, `instagram`, `messenger`, `voice`
-- **Message types**: `text`, `image`, `video`, `audio`, `document`, `sticker`, `location`, `contact`, `buttons`, `list`, `cta_url`, `reaction`, `template`
+- **Message types**: `text`, `image`, `video`, `audio`, `document`, `sticker`, `location`, `contact`, `buttons`, `list`, `cta_url`, `location_request`, `reaction`, `template`
 - **Pagination**: Cursor-based. All list endpoints return `{ items: [...], nextCursor: string | null }`
 - **Idempotency**: Use `idempotencyKey` on send to prevent duplicate messages
 

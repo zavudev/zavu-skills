@@ -311,6 +311,41 @@ await zavu.messages.send({
 });
 ```
 
+### Location Request (ask the contact to share their location)
+
+Sends a message with a fixed "Send location" button. WhatsApp-only. Takes **no** `content` object — the prompt goes in `text` (max 1024 chars).
+
+Not yet generated in the SDK — use REST:
+
+```bash
+curl -X POST https://api.zavu.dev/v1/messages \
+  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "+14155551234",
+    "channel": "whatsapp",
+    "messageType": "location_request",
+    "text": "To finish your order, share the delivery address."
+  }'
+```
+
+The answer arrives as a normal inbound `location` message (not a new type) with
+`content.replyToMessageId` set to the ID of the request. Match on that field to
+correlate the coordinates with the order/ticket you asked about:
+
+```typescript
+if (
+  event.type === "message.inbound" &&
+  event.data.messageType === "location" &&
+  event.data.content?.replyToMessageId === pendingRequestId
+) {
+  const { latitude, longitude } = event.data.content;
+}
+```
+
+`content.name` and `content.address` are optional — present only when the contact
+picks a saved place instead of dropping a pin. Always rely on lat/lng.
+
 ### Reaction
 
 ```typescript
@@ -400,6 +435,7 @@ Email sends are pre-validated automatically at dispatch: guaranteed hard bounces
 
 - Button titles: max 20 chars, max 3 buttons
 - List row titles: max 24 chars, descriptions: max 72 chars, max 10 rows per section
+- Location request body: max 1024 chars, no `content` object, WhatsApp only
 - Email subject: max 998 chars
 - Voice language codes: `en-US`, `es-ES`, `pt-BR`, etc. (auto-detected if omitted)
 - Media messages auto-select WhatsApp channel

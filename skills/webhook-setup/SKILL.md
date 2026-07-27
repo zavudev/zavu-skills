@@ -92,7 +92,7 @@ For `message.inbound`, `data` carries the message. On inbound, `to` is your own 
 | `from` | Sender: the contact for a 1:1, or the participant for a group message. |
 | `to` | Your own number (the message's destination). |
 | `channel` | Delivery channel (`sms`, `whatsapp`, `telegram`, `email`, `instagram`, `messenger`, `voice`). |
-| `messageType` | `text`, `image`, `video`, etc. |
+| `messageType` | `text`, `image`, `video`, etc. A reply to a `location_request` arrives as `location` (not a new type) with `content.replyToMessageId` set to the request — match on that to correlate. |
 | `text` | Text body or media caption, when present. |
 | `providerTimestamp` | The provider's original receive time (Unix ms) for WhatsApp, Telegram, Instagram, Messenger; `null` for SMS and email. Compare with the top-level `timestamp` to detect delayed deliveries. |
 
