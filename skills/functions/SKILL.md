@@ -42,7 +42,7 @@ That's a full agent + tool. `npx zavudev deploy` reconciles the live state.
 | Tools need to query the user's database, call internal APIs, or transform data before returning | **Functions** |
 | User wants reproducible config from a git repo (one source of truth) | **Functions** |
 | User wants no-code config via the dashboard | imperative `senders.agent.create` API (see `ai-agent` skill) |
-| User needs event-driven handlers (`message.inbound`, `broadcast.completed`) without dashboard wiring | **Functions** |
+| User needs event-driven handlers (`message.inbound`, `broadcast.status_changed`) without dashboard wiring | **Functions** |
 
 If the user mentions writing code, `defineAgent`, `defineTool`, `npx zavudev deploy`, or "serverless" — use this skill. Otherwise route to `ai-agent`.
 
@@ -139,7 +139,7 @@ defineAgent({
   model: "openai/gpt-4o-mini",   // For "zavu" provider, prefix with the underlying provider
   prompt: "You are Bella…",       // System prompt
   channels: ["whatsapp"],         // Optional: default ["*"] = all channels the sender supports
-  // apiKey: process.env.OPENAI_API_KEY  // only for non-npx zavudev providers
+  // apiKey: process.env.OPENAI_API_KEY  // only for BYOK providers (openai / anthropic / google / mistral)
 })
 
 defineTool({
@@ -190,7 +190,7 @@ Output:
 |---|---|
 | `+ name` | Created |
 | `~ name` | Existed and was written |
-| `= name (unchanged)` | Existed, and nothing in your source differed |
+| `= name (unchanged)` | Existed and nothing differed — **only on newer backends; you may never see this** |
 
 **Do not use this output to confirm an edit landed.** `~` is printed for every
 agent and tool that already existed, whether or not anything about it actually
@@ -230,11 +230,21 @@ npx zavudev fn init --template blank --http
 npx zavudev agents pull kepler --sender "$SENDER_ID" --http
 ```
 
-The public URL exists once something is deployed behind it, so it is printed
-after your first `deploy`, not at scaffold time.
+The URL exists once something is deployed behind it. `deploy` prints it, and you
+can ask for it any time:
 
-This is set **at creation**. Turning HTTP on for a function that already exists
-is still a dashboard action.
+```sh
+npx zavudev fn info                 # status, and the public URL when HTTP is on
+npx zavudev fn info --json          # same, machine-readable
+```
+
+Toggling it on an existing function is a CLI action too — it applies to the
+already-deployed function, no redeploy:
+
+```sh
+npx zavudev fn http enable
+npx zavudev fn http disable
+```
 
 **Run `npm install` before anything local.** Nothing resolves until you do:
 
@@ -434,8 +444,8 @@ defineTool({
 ## defineFunction reference (optional)
 
 Use only if you want to handle:
-- **Raw HTTP requests** (function exposed at a public URL — set `httpEnabled: true` via dashboard)
-- **Native event triggers** (`message.inbound`, `broadcast.completed`, etc — configured via `npx zavudev fn triggers add`)
+- **Raw HTTP requests** (function exposed at a public URL — `zavu fn init --http` at creation, or `zavu fn http enable` on an existing one)
+- **Native event triggers** (`message.inbound`, `broadcast.status_changed`, etc — configured via `npx zavudev fn triggers add`)
 
 ```ts
 export default defineFunction(async (event, ctx) => {
@@ -453,7 +463,7 @@ To make `defineFunction` react to Zavu events:
 ```sh
 npx zavudev fn triggers list
 npx zavudev fn triggers add --events message.inbound --senders <senderId>
-npx zavudev fn triggers add --events broadcast.completed --senders any
+npx zavudev fn triggers add --events broadcast.status_changed --senders any
 npx zavudev fn triggers toggle <triggerId>
 npx zavudev fn triggers rm <triggerId>
 npx zavudev fn triggers events       # list available event types
