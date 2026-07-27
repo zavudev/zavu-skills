@@ -30,6 +30,37 @@ Inbound message -> Flow check (keyword/intent match?)
                 -> Agent generates response -> Send reply
 ```
 
+## Two ways to build one
+
+**As code, with `defineAgent`.** The agent lives in a Zavu Function, next to the
+tools it calls, and `zavu deploy` reconciles it. Prefer this when the agent has
+tools, when it should be reviewable in a pull request, or when it is part of an
+app you already deploy. See the `functions` skill for the full shape.
+
+```typescript
+import { defineAgent, defineTool } from "@zavudev/functions"
+
+export const support = defineAgent({
+  name: "Customer Support",
+  senderId: process.env.SENDER_ID!,
+  provider: "zavu",
+  model: "gpt-4o-mini",
+  systemPrompt: "You are a helpful support agent for Acme Corp. Be concise.",
+  tools: [orderStatus],
+})
+```
+
+Deploy it with `npx zavudev deploy`. The reconcile output names every agent and
+tool it created or updated, so read it rather than assuming: a deploy can
+succeed while the declarations fail to sync, and it says so when that happens.
+
+**Through the API**, shown below. Prefer this for one-off setup, for agents
+managed by a dashboard you are building, or when there is no function to attach
+the agent to.
+
+Whichever you pick, an agent is created **disabled**. It answers nothing until
+you enable it.
+
 ## Create Agent
 
 Each sender can have one agent:
@@ -134,6 +165,11 @@ The agent can also answer and place **phone calls** through Zavu's co-located vo
 
 - The Voice Agents feature must be enabled for your team (call endpoints return `403` otherwise).
 - The agent must have `voice.enabled: true`.
+- **The sender must have the voice channel on.** An agent with a voice on a sender that cannot take calls looks configured and never rings. The sender needs a phone number your project owns, plus `enableVoice`:
+  ```bash
+  zavu senders update snd_abc123 --enable-voice
+  ```
+  Confirm with `zavu senders get snd_abc123`: `channels` must contain `voice`. That array is computed from the sender's real configuration, so it is the answer, not a stored flag.
 - Not available with test-mode keys — use a live (`zv_live_...`) key.
 - Calls are billed per connected minute plus telephony, deducted from your prepaid balance.
 
@@ -150,7 +186,7 @@ curl -X PATCH https://api.zavu.dev/v1/senders/snd_abc123/agent \
       "enabled": true,
       "greeting": "Hi, thanks for calling Acme. How can I help you today?",
       "language": "en",
-      "ttsVoice": "aria",
+      "ttsVoiceId": "aura-2-thalia-en",
       "interruptible": true,
       "maxCallDurationMinutes": 15,
       "maxIdleSeconds": 30,
@@ -165,7 +201,7 @@ curl -X PATCH https://api.zavu.dev/v1/senders/snd_abc123/agent \
 | `enabled` | Whether the agent handles calls. Required. When false, its number is not answered and outbound calls are rejected. |
 | `greeting` | Opening line spoken when the call connects (max 1000). If omitted, the agent waits for the caller to speak first. |
 | `language` | BCP-47 code for recognition and synthesis (e.g. `en`, `es`, `pt-BR`). Auto-detected from the recipient when omitted. |
-| `ttsVoice` | Name of the Zavu voice for synthesis. Neutral default when omitted. |
+| `ttsVoiceId` | Voice used for synthesis. List the ids with `zavu agents voices` (or `GET /v1/agents/voices`); a name that is not in that list is ignored. Neutral default when omitted. |
 | `interruptible` | Caller can barge in while the agent is speaking. Default `true`. |
 | `maxCallDurationMinutes` | Hard call-length cap, 1-120. Default 15. |
 | `maxIdleSeconds` | Silence before the agent ends the call, 5-300. Default 30. |
