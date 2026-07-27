@@ -186,17 +186,27 @@ Output:
     + lookup_order
 ```
 
-Three markers, and the difference matters when you are checking your own work:
-
 | Marker | Meaning |
 |---|---|
 | `+ name` | Created |
-| `~ name` | Existed, and the deploy changed it |
+| `~ name` | Existed and was written |
 | `= name (unchanged)` | Existed, and nothing in your source differed |
 
-So a redeploy after editing a prompt shows `~`, and a redeploy with no edit
-shows `=`. If you expected `~` and got `=`, your change did not reach the file
-that was deployed — check you saved it and that you are in the right directory.
+**Do not use this output to confirm an edit landed.** `~` is printed for every
+agent and tool that already existed, whether or not anything about it actually
+changed, so a redeploy with no edit at all is byte-identical to one that rewrote
+the prompt. `=` is emitted only by newer backends; if you never see it, yours
+does not distinguish the two cases.
+
+To actually verify a change reached production, ask the agent:
+
+```sh
+npx zavudev agents test --agent <agentId> --message "<something your edit changes>" --json
+```
+
+Put a distinctive word in the prompt you edited and check it comes back. That is
+one command, it charges nothing, and unlike the deploy summary it answers the
+question you actually have.
 
 **Read the lines above the ✓.** Warnings print before the success line and cover
 the cases where a green deploy did not do what it looks like: a manifest probe
@@ -240,6 +250,22 @@ npx zavudev fn invoke --tool lookup_order --args '{"orderId":"ORD-001"}'
 # Simulate an inbound event for defineFunction
 npx zavudev fn invoke --event message.inbound --data '{"from":"+14155551234","text":"hi"}'
 ```
+
+`--args` is checked against the tool's own `parameters` schema before the handler
+runs — required fields, types, and closed `enum` values. A mismatch fails with
+the exact field and the expected shape, and never calls the handler:
+
+```
+✗ arguments do not match the tool's schema:
+   • missing required "orderId"
+   • "score" must be one of "hot" | "warm" | "cold", got "banana"
+  expected: { orderId: string, score: hot|warm|cold, notes: string? }
+```
+
+Exit codes are worth branching on: **2** means you called it wrong (unknown
+tool, arguments that fail the schema), **1** means the handler itself threw, **0**
+means it ran. A green run therefore means the handler actually executed with
+valid input, not merely that nothing crashed.
 
 **Test the agent's brain without sending anything:**
 
@@ -466,6 +492,21 @@ Set memory at function creation or via dashboard. Lower memory = cheaper. Most t
 If the user already created an agent via the dashboard or `npx zavudev agents create`, declaring it in code with the same `senderId + name` will TAKE OVER that agent — Zavu marks it `managedByFunctionId` and the dashboard locks manual edits. The function source becomes source-of-truth.
 
 To go back to manual control: delete the function (`npx zavudev fn delete`) and the agent is freed.
+
+### Cleaning up a function you created
+
+`fn delete` cascades: the Lambda, triggers, secrets, deployment history, and
+every agent and tool the function owns. It asks you to type the slug back.
+
+Non-interactively, assert the slug up front:
+
+```sh
+npx zavudev fn delete --confirm <slug>
+```
+
+This is deliberately not a blind `-y`. You still have to name the thing, so a
+wrong directory or a stale id fails instead of deleting something else — which
+is what makes it safe to hand to a script or an agent cleaning up after itself.
 
 ### Per-environment senders
 
