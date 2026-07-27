@@ -180,13 +180,23 @@ Output:
 
 ```
 ✓ Deployed in 6.4s
-  Agents:
-    + Bella           (sender_abc, whatsapp)
-  Tools:
-    + lookup_order    → Bella
+  Agents synced:
+    + Bella
+  Tools synced:
+    + lookup_order
 ```
 
-The reconcile is idempotent — re-running with no changes shows `0 created, 0 updated, 0 deleted`.
+Three markers, and the difference matters when you are checking your own work:
+
+| Marker | Meaning |
+|---|---|
+| `+ name` | Created |
+| `~ name` | Existed, and the deploy changed it |
+| `= name (unchanged)` | Existed, and nothing in your source differed |
+
+So a redeploy after editing a prompt shows `~`, and a redeploy with no edit
+shows `=`. If you expected `~` and got `=`, your change did not reach the file
+that was deployed — check you saved it and that you are in the right directory.
 
 **Read the lines above the ✓.** Warnings print before the success line and cover
 the cases where a green deploy did not do what it looks like: a manifest probe
@@ -197,10 +207,21 @@ sender that already has one — where only the first will ever answer.
 ### Local development
 
 The scaffold is a real TypeScript project: `zavu init` and `zavu agents pull`
-write a `tsconfig.json` and a local stand-in for `@zavudev/functions` under
-`.zavu/`, so the editor, `tsc --noEmit` and local runs all resolve the same
-module. In production the runtime layer provides it; the stand-in is never
-shipped.
+write a `tsconfig.json` and a `package.json` that declares `@zavudev/functions`,
+`typescript` and `@types/node` as devDependencies.
+
+**Run `npm install` before anything local.** Nothing resolves until you do:
+
+```sh
+cd <your-function-dir>
+npm install
+```
+
+Without it, `zavu fn invoke` fails with `Cannot find module '@zavudev/functions'`
+and `npx tsc` silently fetches an unrelated deprecated package instead of the
+compiler. Deploy works either way — the runtime layer supplies the module in
+production and it is never shipped from your machine — so this only bites the
+local loop, which is exactly the loop you use to verify your work.
 
 Commit `.zavu/` — it holds the `functionId`, and there is no command to look one
 up, so a teammate who clones without it cannot deploy.
@@ -315,6 +336,7 @@ voice: {
   enabled: boolean,              // Required. true = answer/place calls; removing the block reverts to text-only.
   model?: string,                // Co-located call model, e.g. "openai/gpt-4o". Derived from the text model if omitted.
   greeting?: string,             // Opening line. Max 1000 chars. If omitted, the agent waits for the caller.
+  greetings?: Record<string, string>, // Per-language greeting keyed by language tag: { es: "Hola…" }. Used when the caller's language differs from the one `greeting` is written in. Factory agents ship with this set.
   language?: string,             // BCP-47 (e.g. "en", "es", "pt-BR"). Auto-detected if omitted.
   ttsVoiceId?: string,           // Voice used for speech synthesis.
   voiceSpeed?: number,           // Speech rate 0.5–1.5. Default 1.0.
@@ -493,7 +515,7 @@ Each function gets a scoped `ZAVU_API_KEY` injected automatically — use the SD
 ```ts
 import { Zavudev } from "@zavudev/sdk"
 
-const npx zavudev = new Zavudev({ apiKey: process.env.ZAVU_API_KEY })
+const zavu = new Zavudev({ apiKey: process.env.ZAVU_API_KEY })
 
 defineTool({
   name: "send_followup",
