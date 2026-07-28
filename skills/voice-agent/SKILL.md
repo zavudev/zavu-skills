@@ -212,8 +212,12 @@ npx zavudev fn invoke --tool check_availability --args '{"preferred_time":"Tuesd
 though voice would — it warns you when that applies. Use it for the prompt, and
 `fn invoke` for the handlers.
 
-To actually hear it you need either the browser tester in the dashboard, or a
-phone number to call. Inbound requires owning a number:
+To actually hear it, you need a phone number and a real call. There is no way
+to listen to the agent for free: `agents test` is text-only, and it says so on
+every run. Everything before the call is verifiable (config, prompt, handlers);
+the audio itself is not. Budget for that before promising a delivery date.
+
+Inbound requires owning a number:
 
 ```bash
 npx zavudev phone-numbers search --country US
@@ -290,9 +294,12 @@ npx zavudev senders update <senderId> \
 - **A field you set has no effect.** `voiceSpeed` is only honoured by voices
   that support rate control. `greetings` needs a language tag that matches what
   the caller actually speaks.
-- **Deploy said it synced but nothing changed.** Read the lines above the ✓.
-  `npx zavudev deploy` prints warnings before the success line and exits non-zero when
-  the declarations in your source were not applied.
+- **Deploy said it synced but nothing changed.** Read the lines above the ✓,
+  and do not trust the exit code. `npx zavudev deploy` prints its warnings
+  before the success line, but it still exits 0 for cases that leave your agent
+  unreachable — two agents on one sender, for instance, where only one answers.
+  A green checkmark means the deploy ran, not that your agent will be reached.
+  If you gate CI on this, gate it on the warning lines, not on the exit status.
 
 ## Prompting for voice
 
