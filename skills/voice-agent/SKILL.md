@@ -25,27 +25,27 @@ Zavu ships working voice agents. Talking to one on zavu.dev and then owning its
 code is the same agent.
 
 ```bash
-zavu agents catalog                     # what's available
-zavu agents pull kepler --dir kepler    # scaffold it locally
+npx zavudev agents catalog                     # what's available
+npx zavudev agents pull kepler --dir kepler    # scaffold it locally
 # booking agents: add --calendar calcom for a working Cal.com client
 cd kepler
 npm install                             # types + local runs
-zavu senders list                       # find your sender id
-zavu fn secrets set SENDER_ID <senderId>
-zavu deploy
-zavu agents list                        # confirm what actually landed
+npx zavudev senders list                       # find your sender id
+npx zavudev fn secrets set SENDER_ID <senderId>
+npx zavudev deploy
+npx zavudev agents list                        # confirm what actually landed
 ```
 
 An agent can answer on more than one number. Connect them by id:
 
 ```bash
-zavu agents senders connect --agent <agentId> --sender <senderId>
+npx zavudev agents senders connect --agent <agentId> --sender <senderId>
 ```
 
 `agents pull` writes a real TypeScript project: `index.ts` with the agent and
 its skills, a `tsconfig.json`, and a local stand-in for `@zavudev/functions` so the
 project typechecks and runs on your machine. Edit it freely — the file is yours,
-and `zavu deploy` reconciles whatever it declares.
+and `npx zavudev deploy` reconciles whatever it declares.
 
 ---
 
@@ -128,7 +128,7 @@ connect a Cal.com or Google calendar in the same place. Zavu hosts both skills.
 
 Use this instead of scaffolding a booking function when the only thing the agent
 has to do is read a calendar and put something on it. Reach for
-`zavu agents pull kepler --calendar calcom` when the booking logic is yours:
+`npx zavudev agents pull kepler --calendar calcom` when the booking logic is yours:
 qualifying first, routing to different hosts, writing to your own system too.
 
 ## Skills the agent can call
@@ -158,7 +158,7 @@ defineTool({
 Run one locally without deploying:
 
 ```bash
-zavu fn invoke --tool check_availability --args '{"preferred_time":"tomorrow 3pm"}'
+npx zavudev fn invoke --tool check_availability --args '{"preferred_time":"tomorrow 3pm"}'
 ```
 
 **Never return a fake success.** A handler that answers `{ booked: true,
@@ -172,10 +172,10 @@ is recoverable. A false confirmation is not.
 ## Placing and inspecting calls
 
 ```bash
-zavu calls create --to +14155551234        # outbound. COSTS MONEY.
-zavu calls list --status completed
-zavu calls get <callId>                    # includes the transcript
-zavu calls hangup <callId>
+npx zavudev calls create --to +14155551234        # outbound. COSTS MONEY.
+npx zavudev calls list --status completed
+npx zavudev calls get <callId>                    # includes the transcript
+npx zavudev calls hangup <callId>
 ```
 
 `calls get` prints the conversation turn by turn, including tool calls. It is
@@ -202,10 +202,10 @@ test everything upstream of the audio, for free:
 
 ```bash
 # The agent's brain: prompt, model, knowledge base. Nothing is delivered.
-zavu agents test --agent <agentId> --message "do you have anything Tuesday?"
+npx zavudev agents test --agent <agentId> --message "do you have anything Tuesday?"
 
 # A skill's handler, locally.
-zavu fn invoke --tool check_availability --args '{"preferred_time":"Tuesday"}'
+npx zavudev fn invoke --tool check_availability --args '{"preferred_time":"Tuesday"}'
 ```
 
 `agents test` runs the **text** path, so it will not exercise tool calling even
@@ -216,7 +216,17 @@ To actually hear it you need either the browser tester in the dashboard, or a
 phone number to call. Inbound requires owning a number:
 
 ```bash
-zavu phone-numbers search --country US   # capabilities column must include voice
+npx zavudev phone-numbers search --country US
+```
+
+Do not decide from the `capabilities` column alone. It is carrier-reported and
+has been wrong in both directions: numbers that place and answer calls have
+listed `["sms"]`, and numbers listing `voice` have failed to complete a call.
+Every number sold through Zavu is provisioned for calls when you buy it. The
+check that actually answers the question is the sender's own channel list:
+
+```bash
+npx zavudev senders get <senderId>    # channels includes "voice" once it can call
 ```
 
 ---
@@ -246,7 +256,7 @@ Every voice event carries `callId`, `direction`, `from`, `to`, `status`,
 | `call.failed` | Busy, no answer, canceled, or an error |
 
 ```bash
-zavu senders update <senderId> \
+npx zavudev senders update <senderId> \
   --webhook-url https://api.example.com/hooks/zavu \
   --webhook-events call.completed,call.failed
 ```
@@ -259,13 +269,29 @@ zavu senders update <senderId> \
   that says "only state what retrieval returned" with no documents attached will
   invent answers instead of refusing. Verify with `agents test` — it reports how
   many knowledge chunks were used.
-- **The number rings and the agent does not pick up.** Check `voice.enabled` is
-  true and `channels` includes `voice`, then that the agent itself is enabled.
+- **The number rings and the agent does not pick up.** Check the sender first:
+
+  ```bash
+  npx zavudev senders get <senderId>    # channels must be non-empty
+  ```
+
+  An empty `channels` array means the sender is not wired to anything and cannot
+  send or receive on any channel, voice included. That is the cause people miss,
+  because the agent, `voice.enabled`, and the number all look correct while it is
+  true. Attach a number your project owns and turn voice on:
+
+  ```bash
+  npx zavudev phone-numbers update <phoneNumberId> --sender <senderId>
+  npx zavudev senders update <senderId> --enable-voice
+  ```
+
+  Only once `channels` includes `voice` is it worth checking `voice.enabled` and
+  that the agent itself is enabled.
 - **A field you set has no effect.** `voiceSpeed` is only honoured by voices
   that support rate control. `greetings` needs a language tag that matches what
   the caller actually speaks.
 - **Deploy said it synced but nothing changed.** Read the lines above the ✓.
-  `zavu deploy` prints warnings before the success line and exits non-zero when
+  `npx zavudev deploy` prints warnings before the success line and exits non-zero when
   the declarations in your source were not applied.
 
 ## Prompting for voice

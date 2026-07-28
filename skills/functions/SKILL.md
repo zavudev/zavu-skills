@@ -51,8 +51,10 @@ If the user mentions writing code, `defineAgent`, `defineTool`, `npx zavudev dep
 Functions are managed entirely via the `zavu` CLI, not API calls. Install once:
 
 ```sh
-brew install zavudev/tools/zavu
-# or grab a standalone binary from https://github.com/zavudev/zavu-cli/releases
+# `npx zavudev@latest` needs no install and always runs the current version.
+# Pin nothing: an old CLI is the most common source of "the API does not
+# support this".
+npx zavudev@latest --version
 
 npx zavudev login
 ```

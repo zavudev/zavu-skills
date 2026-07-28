@@ -21,7 +21,7 @@ Zavu is a unified multi-channel messaging API. One API to send messages via SMS,
 
 | Tool | Purpose | Install |
 |------|---------|---------|
-| `zavu` CLI | Interact with the API from the terminal; manage Zavu Functions (serverless TypeScript on Zavu Cloud) | `brew install zavudev/tools/zavu` |
+| `zavu` CLI | Interact with the API from the terminal; manage Zavu Functions (serverless TypeScript on Zavu Cloud) | `npx zavudev@latest` (no install), or `npm install -g zavudev` |
 | `@zavudev/functions` | Runtime package for Zavu Functions. Provides `defineAgent`, `defineTool`, `defineFunction` declarative APIs. | Pre-installed in the function runtime — `import { defineAgent } from "@zavudev/functions"` (no install needed). |
 
 The CLI is the primary interface for **Zavu Functions**: serverless TypeScript that runs on Zavu Cloud and lets you declare AI agents + tool handlers in code. See the `functions` skill for full coverage.

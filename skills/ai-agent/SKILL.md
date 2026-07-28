@@ -33,7 +33,7 @@ Inbound message -> Flow check (keyword/intent match?)
 ## Two ways to build one
 
 **As code, with `defineAgent`.** The agent lives in a Zavu Function, next to the
-tools it calls, and `zavu deploy` reconciles it. Prefer this when the agent has
+tools it calls, and `npx zavudev deploy` reconciles it. Prefer this when the agent has
 tools, when it should be reviewable in a pull request, or when it is part of an
 app you already deploy. See the `functions` skill for the full shape.
 
@@ -167,9 +167,9 @@ The agent can also answer and place **phone calls** through Zavu's co-located vo
 - The agent must have `voice.enabled: true`.
 - **The sender must have the voice channel on.** An agent with a voice on a sender that cannot take calls looks configured and never rings. The sender needs a phone number your project owns, plus `enableVoice`:
   ```bash
-  zavu senders update snd_abc123 --enable-voice
+  npx zavudev senders update snd_abc123 --enable-voice
   ```
-  Confirm with `zavu senders get snd_abc123`: `channels` must contain `voice`. That array is computed from the sender's real configuration, so it is the answer, not a stored flag.
+  Confirm with `npx zavudev senders get snd_abc123`: `channels` must contain `voice`. That array is computed from the sender's real configuration, so it is the answer, not a stored flag.
 - Not available with test-mode keys — use a live (`zv_live_...`) key.
 - Calls are billed per connected minute plus telephony, deducted from your prepaid balance.
 
@@ -201,7 +201,7 @@ curl -X PATCH https://api.zavu.dev/v1/senders/snd_abc123/agent \
 | `enabled` | Whether the agent handles calls. Required. When false, its number is not answered and outbound calls are rejected. |
 | `greeting` | Opening line spoken when the call connects (max 1000). If omitted, the agent waits for the caller to speak first. |
 | `language` | BCP-47 code for recognition and synthesis (e.g. `en`, `es`, `pt-BR`). Auto-detected from the recipient when omitted. |
-| `ttsVoiceId` | Voice used for synthesis. List the ids with `zavu agents voices` (or `GET /v1/agents/voices`); a name that is not in that list is ignored. Neutral default when omitted. |
+| `ttsVoiceId` | Voice used for synthesis. List the ids with `npx zavudev agents voices` (or `GET /v1/agents/voices`); a name that is not in that list is ignored. Neutral default when omitted. |
 | `interruptible` | Caller can barge in while the agent is speaking. Default `true`. |
 | `maxCallDurationMinutes` | Hard call-length cap, 1-120. Default 15. |
 | `maxIdleSeconds` | Silence before the agent ends the call, 5-300. Default 30. |
@@ -398,10 +398,10 @@ attached does not refuse — it invents. Attach the documents, then verify with
 From the CLI:
 
 ```bash
-zavu agents knowledge-bases create --sender snd_abc123 --name "Product docs"
-zavu agents knowledge-bases documents add --sender snd_abc123 --kb <kbId> \
+npx zavudev agents knowledge-bases create --sender snd_abc123 --name "Product docs"
+npx zavudev agents knowledge-bases documents add --sender snd_abc123 --kb <kbId> \
   --title "Pricing" --content-file ./pricing.md
-zavu agents knowledge-bases documents list --sender snd_abc123 --kb <kbId>
+npx zavudev agents knowledge-bases documents list --sender snd_abc123 --kb <kbId>
 ```
 
 Processing takes a few seconds; `isProcessed` flips to true and `chunkCount`
@@ -469,8 +469,8 @@ An agent is a standalone object. It can answer on several senders, and it can
 exist with none while you build it.
 
 ```bash
-zavu agents list                 # every agent in the project, with ids
-zavu agents list --json
+npx zavudev agents list                 # every agent in the project, with ids
+npx zavudev agents list --json
 ```
 
 ```
@@ -497,8 +497,8 @@ or the second agent on a shared one.
 ### Connecting senders
 
 ```bash
-zavu agents senders connect    --agent <agentId> --sender <senderId>
-zavu agents senders disconnect --agent <agentId> --sender <senderId>
+npx zavudev agents senders connect    --agent <agentId> --sender <senderId>
+npx zavudev agents senders disconnect --agent <agentId> --sender <senderId>
 ```
 
 `POST /v1/agents/{agentId}/senders` with `{"senderId": "..."}`, and
@@ -511,7 +511,7 @@ agent that looks connected and never receives a message.
 ## Test an agent without sending anything
 
 ```bash
-zavu agents test --agent <agentId> --message "where is order ORD-001?"
+npx zavudev agents test --agent <agentId> --message "where is order ORD-001?"
 ```
 
 Runs the real prompt, model and knowledge base and prints what the agent
@@ -526,11 +526,11 @@ but not here. Treat those warnings as part of the result.
 Multi-turn and isolating the prompt from retrieval:
 
 ```bash
-zavu agents test --agent <agentId> \
+npx zavudev agents test --agent <agentId> \
   --turn "I need to change my booking" --turn "Sure — which one?" \
   --message "the one on Friday"
 
-zavu agents test --agent <agentId> --message "what do you cost?" --no-knowledge
+npx zavudev agents test --agent <agentId> --message "what do you cost?" --no-knowledge
 ```
 
 ## Delete Agent
