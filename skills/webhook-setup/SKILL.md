@@ -28,7 +28,7 @@ Use this skill when setting up webhook endpoints to receive inbound messages, de
 | `message.failed` | Outbound | Message delivery failed |
 | `broadcast.status_changed` | Broadcasts | Broadcast status changed |
 | `template.status_changed` | Templates | WhatsApp template approval status changed |
-| `invitation.status_changed` | Invitations | Partner invitation status changed |
+| `invitation.status_changed` | Invitations | Partner invitation status changed (pending, in_progress, completed, cancelled, failed) |
 | `domain.verified` | Domains | Custom email domain passed verification |
 | `domain.failed` | Domains | Custom email domain failed verification |
 
@@ -149,6 +149,45 @@ curl https://api.zavu.dev/v1/messages/MESSAGE_ID/attachments \
 ```
 
 Inline images embedded in the HTML body have `isInline: true` and a `contentId` referenced in `htmlBody` as `cid:<contentId>`.
+
+## Partner Invitation Data (`invitation.status_changed`)
+
+Fires every time a partner invitation moves. `data` carries:
+
+| Field | Description |
+|-------|-------------|
+| `invitationId` | Zavu invitation ID. |
+| `clientName` / `clientEmail` | What you passed when creating the invitation, or `null`. |
+| `connectionType` | What the client connects: `whatsapp_waba` or `messenger`. |
+| `previousStatus` / `currentStatus` | The transition. |
+| `senderId` | Present on `completed`: the sender created in your project. |
+| `connectedAccount` | Present on `completed`: `{ channel, id, name }` — the WhatsApp number or the Facebook Page that was linked. |
+| `failureReason` | Present on `failed`. Stable code: `fb_cancelled`, `fb_not_authorized`, `signup_abandoned`, `meta_no_pages`, `internal_error`, and others. Treat unknown codes as a generic failure. |
+
+A `failed` invitation is not terminal: the same link stays usable, and it moves back to `in_progress` when the client retries. Only act on `completed` to provision.
+
+```json
+{
+  "id": "evt_1736850000000_abc123",
+  "type": "invitation.status_changed",
+  "timestamp": 1736850000000,
+  "projectId": "jx7xyz789ghi012",
+  "data": {
+    "invitationId": "jh7am5bng9p3v2x1k4r8",
+    "clientName": "Acme Corp",
+    "clientEmail": "contact@acme.com",
+    "connectionType": "messenger",
+    "previousStatus": "in_progress",
+    "currentStatus": "completed",
+    "senderId": "sender_12345",
+    "connectedAccount": {
+      "channel": "messenger",
+      "id": "1077492835456839",
+      "name": "Acme Store"
+    }
+  }
+}
+```
 
 ## Signature Verification
 
