@@ -89,7 +89,7 @@ For `message.inbound`, `data` carries the message. On inbound, `to` is your own 
 |-------|-------------|
 | `messageId` | Zavu message ID. |
 | `conversationId` | Inbox thread id. `null` while the thread is still being created (use `conversation.new`'s id, or `GET /v1/messages/{id}`). See "Deep-linking to the inbox" below. |
-| `from` | Sender: the contact for a 1:1, or the participant for a group message. |
+| `from` | Sender: the contact for a 1:1, or the participant for a group message. Usually an E.164 phone number, but for WhatsApp contacts who adopted a username and hid their number it is their business-scoped user ID (BSUID, e.g. `US.13491208655302741918`) — treat it as opaque and pass it back as `to` when replying. |
 | `to` | Your own number (the message's destination). |
 | `channel` | Delivery channel (`sms`, `whatsapp`, `telegram`, `email`, `instagram`, `messenger`, `voice`). |
 | `messageType` | `text`, `image`, `video`, etc. A reply to a `location_request` arrives as `location` (not a new type) with `content.replyToMessageId` set to the request — match on that to correlate. |

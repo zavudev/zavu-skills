@@ -143,6 +143,20 @@ const template = await zavu.templates.create({
     { type: "phone", text: "Call Support", phoneNumber: "+14155551234" },
   ],
 });
+
+// Contact info request button — asks the recipient to share their phone number.
+// Label is fixed by WhatsApp ("Share Contact Info"), so `text` is not required.
+// Useful for contacts who adopted a WhatsApp username (known only by BSUID).
+const template = await zavu.templates.create({
+  name: "callback_request",
+  language: "en",
+  body: "Hi {{1}}, we need a phone number to schedule your callback.",
+  whatsappCategory: "UTILITY",
+  variables: ["customer_name"],
+  buttons: [
+    { type: "request_contact_info" },
+  ],
+});
 ```
 
 ## OTP Authentication Templates
@@ -257,7 +271,7 @@ await zavu.templates.delete({ templateId: "tpl_abc123" });
 - Template names: lowercase, underscores only (e.g., `order_confirmation`)
 - Variables use positional format: `{{1}}`, `{{2}}`, `{{3}}`
 - Max 3 buttons per template
-- Button text: max 25 characters
+- Button text: max 25 characters (not used for `request_contact_info` — WhatsApp fixes its label)
 - OTP `ONE_TAP` requires Android `packageName` and `signatureHash`
 - `addSecurityRecommendation` only for AUTHENTICATION templates
 - `codeExpirationMinutes`: 1-90, only for AUTHENTICATION

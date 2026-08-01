@@ -346,6 +346,32 @@ if (
 `content.name` and `content.address` are optional — present only when the contact
 picks a saved place instead of dropping a pin. Always rely on lat/lng.
 
+### Contact Info Request (ask the contact to share their phone number)
+
+Sends a message with a fixed "Share Contact Info" button. WhatsApp-only. Takes **no** `content` object — the prompt goes in `text` (max 1024 chars). Essential for contacts who adopted a WhatsApp username and are only known by BSUID.
+
+Not yet generated in the SDK — use REST:
+
+```bash
+curl -X POST https://api.zavu.dev/v1/messages \
+  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "US.13491208655302741918",
+    "channel": "whatsapp",
+    "messageType": "request_contact_info",
+    "text": "Share your phone number so our team can call you back."
+  }'
+```
+
+The answer arrives as a normal inbound `contact` message with the shared number in
+`content.contacts[0].phones`. When the sender was only known by BSUID, Zavu links
+the shared phone to that contact automatically — no manual update needed.
+
+Note: authentication templates with one-tap/zero-tap/copy-code buttons cannot be
+sent to a BSUID (WhatsApp error `131062`) — recover the phone number first.
+Broadcasts also reject BSUID/`@username` recipients.
+
 ### Reaction
 
 ```typescript
