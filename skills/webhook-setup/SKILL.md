@@ -9,6 +9,10 @@ description: Configure webhooks to receive inbound messages and delivery updates
 
 Use this skill when setting up webhook endpoints to receive inbound messages, delivery status updates, or template approval notifications from Zavu.
 
+## Senders vs accounts (one paragraph)
+
+A **Sender** is the API handle you pass as `Zavu-Sender`; **accounts** (a WhatsApp Business Account, a Facebook Page, a Telegram bot, a phone number) are the connections it routes — and what bills. Senders are free. Connecting an account in the dashboard auto-creates its sender; find it with `GET /v1/senders` and trust its `channels` array for what it can send. See the `channel-setup` skill for the full model.
+
 ## Webhook Types
 
 - **Sender Webhooks**: Message events (inbound, delivery status, templates) - configured per sender

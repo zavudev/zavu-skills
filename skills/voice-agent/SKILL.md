@@ -19,6 +19,10 @@ that works today.
 
 ---
 
+## Senders vs accounts (one paragraph)
+
+A **Sender** is the API handle you pass as `Zavu-Sender`; **accounts** (a WhatsApp Business Account, a Facebook Page, a Telegram bot, a phone number) are the connections it routes — and what bills. Senders are free. Connecting an account in the dashboard auto-creates its sender; find it with `GET /v1/senders` and trust its `channels` array for what it can send. See the `channel-setup` skill for the full model.
+
 ## Fastest path: take a factory agent
 
 Zavu ships working voice agents. Talking to one on zavu.dev and then owning its

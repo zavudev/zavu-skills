@@ -212,6 +212,16 @@ For US application-to-person messaging at scale, you may need 10DLC registration
 2. **Campaign Registration** - Register your messaging use case
 3. **Number Assignment** - Assign registered numbers to campaigns
 
+Registration charges The Campaign Registry's own fees from your balance, passed through at cost, as two separate charges:
+
+| Charge | One-time | Monthly |
+|---|---|---|
+| Brand (`POST /v1/10dlc/brands/{brandId}/submit`) | $4 | — |
+| Campaign, standard use cases (`POST /v1/10dlc/campaigns/{campaignId}/submit`) | $15 | $10 while active |
+| Campaign, `LOW_VOLUME` use case | $2 | $2 while active |
+
+One-time fees are charged at submission and refunded if the carrier rejects the registration. The monthly campaign fee starts once the campaign is approved.
+
 10DLC registration is managed through the Zavu dashboard. Contact support for high-volume US messaging requirements.
 
 ## Constraints

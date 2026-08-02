@@ -13,6 +13,10 @@ Use this skill when building code to send messages through the Zavu API. Covers 
 
 `auto`, `sms`, `sms_oneway`, `whatsapp`, `telegram`, `email`, `instagram`, `messenger`, `voice`.
 
+## Senders vs accounts (one paragraph)
+
+A **Sender** is the API handle you pass as `Zavu-Sender`; **accounts** (a WhatsApp Business Account, a Facebook Page, a Telegram bot, a phone number) are the connections it routes — and what bills. Senders are free. Connecting an account in the dashboard auto-creates its sender; find it with `GET /v1/senders` and trust its `channels` array for what it can send. See the `channel-setup` skill for the full model.
+
 ## Channel Selection Decision Tree
 
 ```
@@ -447,6 +451,8 @@ do {
 | Error Code | Meaning | Fix |
 |------------|---------|-----|
 | `whatsapp_window_closed` | 24h window not open | Use template message instead |
+| `a2p_limit_exceeded` | Free plan monthly allowance reached: WhatsApp, Telegram, Instagram and Messenger share 2,000 messages/month | Upgrade to a paid plan (no caps) or wait for the monthly reset on the 1st |
+| `insufficient_balance` | HTTP 402: prepaid balance cannot cover the send. Email is billed from balance in 1,000-message blocks ($0.40/1k transactional, $0.80/1k marketing); SMS and voice are billed per message | Add funds from the dashboard, then retry |
 | `url_not_verified` | Message has unverified URLs | Submit URLs via `/v1/urls` first |
 | `url_shortener_blocked` | URL shortener detected | Use full destination URL |
 | `email_kyc_required` | Email needs KYC | Complete verification in dashboard |
