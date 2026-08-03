@@ -25,7 +25,7 @@ for (const number of result.items) {
   console.log(number.locality);          // San Francisco
   console.log(number.capabilities);      // { sms: true, voice: true, mms: true }
   console.log(number.pricing.monthlyPrice); // 1.25
-  console.log(number.pricing.isFreeEligible); // true (first US number is free)
+  console.log(number.pricing.isFreeEligible); // true (paid plans include the first US number)
 }
 ```
 
@@ -81,7 +81,7 @@ console.log(result.phoneNumber.id);     // pn_abc123
 console.log(result.phoneNumber.status); // "active"
 ```
 
-**First US number is free** for each team.
+**Buying numbers requires a paid plan.** The Free plan cannot purchase phone numbers (the API returns `402` with code `paid_plan_required`). Paid plans include the first US number at no charge.
 
 ## Phone Number Types
 
@@ -226,7 +226,7 @@ One-time fees are charged at submission and refunded if the carrier rejects the 
 
 ## Constraints
 
-- First US phone number is free per team
+- Phone number purchase requires a paid plan (`402 paid_plan_required` on Free); paid plans include the first US number
 - Phone number name: max 100 characters
 - Phone numbers must be unassigned from senders before release
 - Regulatory addresses and documents go through verification (pending -> verified/rejected)
