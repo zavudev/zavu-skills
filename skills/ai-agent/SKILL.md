@@ -49,7 +49,9 @@ export const support = defineAgent({
   senderId: process.env.SENDER_ID!,
   provider: "zavu",
   model: "gpt-4o-mini",
-  systemPrompt: "You are a helpful support agent for Acme Corp. Be concise.",
+  // `prompt` here, `systemPrompt` over the REST API. The two paths name this
+  // field differently and only `prompt` compiles against @zavudev/functions.
+  prompt: "You are a helpful support agent for Acme Corp. Be concise.",
   tools: [orderStatus],
 })
 ```
@@ -497,6 +499,18 @@ Over REST:
 The older `/v1/senders/{senderId}/agent` routes still work, but they resolve a
 sender to exactly ONE agent — so they cannot reach an agent that has no sender,
 or the second agent on a shared one.
+
+To exercise one tool rather than the whole agent:
+
+| | |
+|---|---|
+| `POST /v1/senders/{senderId}/agent/tools/{toolId}/test` | Call the tool with your params, return what it answered |
+| `GET /v1/senders/{senderId}/agent/tools/{toolId}/test-runs` | The recent runs, newest first |
+
+The test is synchronous and returns the tool's status, body, and duration, so a
+result is evidence the tool ran. A tool that answers with an error comes back as
+`run.success: false` and the endpoint still returns 200 — read the field, not the
+status. It fires the real webhook, so it has whatever side effects the tool has.
 
 ### Connecting senders
 

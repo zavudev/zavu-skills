@@ -192,15 +192,16 @@ Output:
 |---|---|
 | `+ name` | Created |
 | `~ name` | Existed and was written |
-| `= name (unchanged)` | Existed and nothing differed — **only on newer backends; you may never see this** |
+| `= name (unchanged)` | Existed and nothing differed |
 
-**Do not use this output to confirm an edit landed.** `~` is printed for every
-agent and tool that already existed, whether or not anything about it actually
-changed, so a redeploy with no edit at all is byte-identical to one that rewrote
-the prompt. `=` is emitted only by newer backends; if you never see it, yours
-does not distinguish the two cases.
+The markers distinguish the two cases: a redeploy with no edit prints `=`, and
+`~` means something about that agent or tool was actually rewritten. Older
+backends printed `~` for everything that already existed and never emitted `=`,
+so if you are on one of those, a redeploy with no edit looks identical to one
+that rewrote the prompt.
 
-To actually verify a change reached production, ask the agent:
+Either way the markers describe what the deploy *wrote*, not what the agent now
+*says*. To verify a change reached the model, ask it:
 
 ```sh
 npx zavudev agents test --agent <agentId> --message "<something your edit changes>" --json
@@ -356,10 +357,11 @@ Prints what the agent would reply, plus tokens, latency and how many knowledge
 chunks it used. Nothing is delivered and nothing is charged, so it is safe to run
 on every prompt edit.
 
-> **Tools do NOT run on the text channel.** The plain text path does not offer
-> tools to the model — it will answer "let me check that, one moment" and then do
-> nothing. Tools run on **voice**, and inside a flow's `tool` step. `agents test`
-> warns you when an agent has tools that its channels will never call.
+> **Tools run on every channel** — plain text (SMS/WhatsApp/Telegram), voice,
+> and inside a flow's `tool` step. A text agent asked to look something up calls
+> the tool and answers with real data (up to 5 tool rounds per reply).
+> `agents test` is the exception: a dry run never EXECUTES tools, because that
+> would fire real webhooks — it warns when the agent has tools this run skipped.
 > Test the handlers themselves with `fn invoke --tool`.
 
 **End-to-end:** send a real message to the sender's WhatsApp/SMS/Telegram number,
@@ -454,9 +456,14 @@ voice: {
 ```
 
 Voice requires the **Voice Agents** feature enabled for your team and a phone
-number assigned to the sender. An out-of-range or misspelled field makes
+number assigned to the sender. An **out-of-range** value makes
 `npx zavudev deploy` warn and ship the agent as text-only rather than fail — fix the
 value and redeploy.
+
+A **misspelled or unknown** key inside the voice block is a different matter: it
+is dropped without a warning and the deploy exits 0, so `interruptable` buys you
+nothing and says nothing. Confirm the block landed the way you wrote it with
+`npx zavudev agents get <agentId>` rather than trusting a green deploy.
 
 ## defineTool reference
 
@@ -513,10 +520,42 @@ To make `defineFunction` react to Zavu events:
 npx zavudev fn triggers list
 npx zavudev fn triggers add --events message.inbound --senders <senderId>
 npx zavudev fn triggers add --events broadcast.status_changed --senders any
+# Schedules: event type "cron" + a 5-field UTC expression (minimum 1 minute).
+# The function receives { type: "cron", data: { cron } }. Several schedules
+# per function are allowed (different expressions).
+npx zavudev fn triggers add --events cron --cron '*/15 * * * *'
+npx zavudev fn triggers add --events cron --cron '0 9 * * 1-5'   # weekdays 09:00 UTC
 npx zavudev fn triggers toggle <triggerId>
 npx zavudev fn triggers rm <triggerId>
 npx zavudev fn triggers events       # list available event types
 ```
+
+## Deploy on every push
+
+Link a GitHub repository to the function and a push to the branch deploys it:
+
+```sh
+npx zavudev fn git link acme/order-bot --branch main
+npx zavudev fn git link acme/monorepo --root apps/bot      # monorepos
+npx zavudev fn git status                                   # link + last deploy
+npx zavudev fn git deploy                                   # deploy the branch now
+npx zavudev fn git set --no-auto-deploy                     # keep the link, ignore pushes
+npx zavudev fn git unlink
+```
+
+The argument takes `owner/repo`, a github.com URL, or an SSH remote.
+
+**The server decides how the link authenticates, and `connection` in the output
+tells you which you got.** With the Zavu GitHub App installed on the account,
+that command is the whole setup and private repositories work. Without it you
+get a `manual` link: the command prints a payload URL and a secret to add as a
+webhook in the repository yourself, and **the secret is printed exactly once** —
+re-linking mints a new one.
+
+Linking does not check the repository against GitHub, because it cannot: an
+`owner/repo` that does not exist, or that the installation cannot see, is
+accepted and fails on the first deploy. Read `fn git status` after the first
+push rather than assuming a successful link means a working one.
 
 Triggers use signed internal invocations (no HMAC verification needed inside the handler).
 
@@ -679,8 +718,13 @@ The auto-provisioned key has `messages:send`, `messages:read`, `contacts:read` s
 - Source bundle: ≤ 900 KB compressed.
 - Total env size: 4 KB across all secrets.
 - Secret key format: `[A-Z_][A-Z0-9_]*`. Reserved prefixes: `AWS_`, `LAMBDA_`, `_HANDLER`, `_X_AMZN`.
-- Timeout: ≤ 30 s (configurable, default 10 s).
+- Timeout: ≤ 180 s (configurable, default 30 s). Event and cron invocations are
+  asynchronous, so a long timeout only bounds cost. A tool called during a live
+  conversation is synchronous: the reply waits, so keep those well under it.
 - Memory: 128 / 256 / 512 / 1024 MB.
+- Billing: by memory AND time. One call is 128 MB for one second; a bigger or
+  slower function uses several, and anything under a second counts as one.
+  300,000 calls a month are included on every plan, then $5 per million.
 - Tools per agent: 16.
 - Agents per function: no hard cap, but typically 1.
 
