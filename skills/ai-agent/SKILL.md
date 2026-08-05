@@ -507,10 +507,21 @@ To exercise one tool rather than the whole agent:
 | `POST /v1/senders/{senderId}/agent/tools/{toolId}/test` | Call the tool with your params, return what it answered |
 | `GET /v1/senders/{senderId}/agent/tools/{toolId}/test-runs` | The recent runs, newest first |
 
+From the CLI:
+
+```bash
+npx zavudev agents tools test <toolId> --sender <senderId> --params '{"orderId":"ORD-4417"}'
+npx zavudev agents tools test-runs <toolId> --sender <senderId>
+```
+
 The test is synchronous and returns the tool's status, body, and duration, so a
 result is evidence the tool ran. A tool that answers with an error comes back as
 `run.success: false` and the endpoint still returns 200 — read the field, not the
 status. It fires the real webhook, so it has whatever side effects the tool has.
+
+`test-runs` covers manual tests only. A tool called by the agent during a real
+conversation is not listed there; for that, `agents executions` shows how many
+tools each reply called.
 
 ### Connecting senders
 
