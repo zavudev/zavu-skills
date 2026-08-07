@@ -12,7 +12,7 @@ Use this skill when building code to send messages to multiple recipients in a c
 ## Broadcast Lifecycle
 
 ```
-draft -> pending_review -> approved -> sending -> completed
+draft -> pending_review -> pending_admin_review -> approved -> sending -> completed
                         -> rejected -> (edit) -> pending_review (retry, max 3)
                         -> rejected -> escalated (manual review by Zavu team)
                         -> rejected_final
@@ -84,7 +84,7 @@ $broadcastId = $result->broadcast->id;
 | `sms_oneway` | One-way SMS (no replies) |
 | `whatsapp` | WhatsApp (requires template for non-window contacts) |
 | `telegram` | Telegram |
-| `email` | Email (requires KYC, needs `emailSubject`) — **recommended path for bulk email** |
+| `email` | Email (needs `emailSubject`) — **recommended path for bulk email** |
 
 ### Message Types
 
@@ -125,7 +125,17 @@ const result = await zavu.broadcasts.contacts.add({
 console.log(result.added, result.duplicates, result.invalid);
 ```
 
-### 3. Send (triggers AI content review)
+### 3. Send (triggers content review)
+
+Sending requires **two** verifications, and passing one is not enough:
+
+| Check | What it is | If missing |
+| --- | --- | --- |
+| KYC | Identity of the person behind the account | `403 kyc_required` |
+| KYB | The business itself, reviewed by a person | `403 kyb_required` |
+
+Creating and editing drafts needs neither — everything above works unverified,
+and only this call is blocked.
 
 ```typescript
 // Send immediately
@@ -137,6 +147,20 @@ await zavu.broadcasts.send({
   scheduledAt: "2024-01-15T10:00:00Z",
 });
 ```
+
+**A draft never goes straight out — what happens next depends on the channel:**
+
+| Broadcast | What this call does |
+| --- | --- |
+| WhatsApp on a Meta-approved template | Skips review (Meta already vetted it) and starts sending |
+| Email | Automated review; sends as soon as it passes |
+| SMS, Telegram, smart, everything else | Automated review, then `pending_admin_review` — a person approves before it sends |
+
+So a `202` means *accepted*, not *sending*. Poll the status rather than
+assuming; only WhatsApp-template broadcasts move to `sending` immediately.
+
+Calling send on a broadcast that is already `approved` or `scheduled` sends or
+reschedules it directly, since it has already been through review.
 
 ### 4. Monitor Progress
 
@@ -205,7 +229,9 @@ await zavu.broadcasts.contacts.add({
 ## Constraints
 
 - Max 1000 contacts per `add` request (batch for larger lists)
-- Content goes through AI review before sending
+- Sending requires BOTH KYC and KYB (`403 kyc_required` / `kyb_required`); drafting requires neither
+- Content goes through review before sending, except WhatsApp on a Meta-approved template
+- Most channels also wait on a human (`pending_admin_review`) after the automated pass
 - Balance is reserved (estimated cost) when sending
 - Max 3 review retry attempts, then escalate
 - Can only update/delete broadcasts in `draft` status
