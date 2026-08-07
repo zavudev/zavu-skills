@@ -364,12 +364,18 @@ announce a confirmation before the tool result says so.
 
 Tools let the agent call your backend during conversations.
 
-> **Which channels actually call them.** Tools are offered to the model on
-> **voice**, and inside a flow's `tool` step. The plain **text** path does not
-> offer tools at all — a text agent asked to look something up will answer
-> "let me check that, one moment" and then do nothing. Attaching a tool to a
-> text-only agent syncs the row and changes no behaviour. Use a flow if you
-> need a text agent to reach your backend.
+> **Which channels call them: all of them.** Tools are offered to the model on
+> voice, on plain text (WhatsApp, SMS, Telegram, email), and inside a flow's
+> `tool` step. All three dispatch through the same executor, so a tool cannot
+> behave differently per channel. The model may chain up to five tool rounds in
+> one reply, and you are billed for the tokens the whole loop uses.
+>
+> Reach for a flow when the sequence must be deterministic, not because text
+> cannot call tools. It can.
+>
+> Verify per execution rather than assuming: `toolCalls: 0` on an agent that has
+> tools means it answered without calling any, which is the case where the reply
+> says "let me check that" and nothing happened.
 
 ```typescript
 const result = await zavu.senders.agent.tools.create({

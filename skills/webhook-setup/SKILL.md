@@ -195,7 +195,32 @@ A `failed` invitation is not terminal: the same link stays usable, and it moves 
 
 ## Signature Verification
 
-Header: `X-Zavu-Signature: t=<timestamp>,v1=<hmac_sha256>`
+Header: `X-Zavu-Signature: t=<unix_seconds>[,v1=<hex>][,v2=<hex>]`
+
+| Part | What it covers |
+|------|----------------|
+| `t` | Unix timestamp in **seconds** |
+| `v1` | `HMAC_SHA256(secret, body)` |
+| `v2` | `HMAC_SHA256(secret, "{t}.{body}")` — the current scheme |
+
+**Hash the right payload or every delivery 401s.** `v1` covers the body alone.
+Only `v2` covers `{t}.{body}`. Read `webhook.signatureVersion` on the sender
+(`GET /v1/senders/{senderId}`) to know which one that receiver gets. New senders
+default to `v2`; anything created earlier is on `v1` until moved.
+
+Prefer `v2` when present and fall back to `v1`, so one implementation works
+before, during and after a migration.
+
+### The algorithm
+
+```
+1. read the RAW body (no JSON parser in front)
+2. parse the header into { t, v1?, v2? }
+3. reject if |now - t| > 300
+4. signed = v2 present ? `${t}.${body}` : body
+   expected = HMAC_SHA256(secret, signed)
+5. constant-time compare against v2 ?? v1
+```
 
 ### TypeScript (Express)
 
@@ -204,224 +229,277 @@ import crypto from "crypto";
 import express from "express";
 
 const app = express();
+// Raw body. NOT express.json() — the signature covers the exact bytes sent.
 app.use("/webhooks/zavu", express.raw({ type: "application/json" }));
 
-function verifyZavuSignature(req: express.Request, secret: string): boolean {
-  const header = req.headers["x-zavu-signature"] as string;
+function verifyZavuSignature(rawBody: string, header: string, secret: string): boolean {
   if (!header) return false;
 
-  const parts = header.split(",");
-  const timestamp = parseInt(parts.find(p => p.startsWith("t="))!.slice(2));
-  const signature = parts.find(p => p.startsWith("v1="))!.slice(3);
+  const parts: Record<string, string> = {};
+  for (const piece of header.split(",")) {
+    const i = piece.indexOf("=");
+    if (i > 0) parts[piece.slice(0, i)] = piece.slice(i + 1);
+  }
 
-  // Reject if older than 5 minutes (replay protection)
-  if (Math.floor(Date.now() / 1000) - timestamp > 300) return false;
+  const t = Number(parts.t);
+  if (!Number.isFinite(t)) return false;
 
-  const signedPayload = `${timestamp}.${req.body.toString()}`;
-  const expected = crypto.createHmac("sha256", secret).update(signedPayload).digest("hex");
+  const age = Math.floor(Date.now() / 1000) - t;
+  if (age > 300 || age < -60) return false;
 
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  const received = parts.v2 ?? parts.v1;
+  if (!received) return false;
+
+  const signed = parts.v2 ? `${t}.${rawBody}` : rawBody;
+  const expected = crypto.createHmac("sha256", secret).update(signed).digest("hex");
+
+  // Length first: timingSafeEqual throws on a mismatch.
+  if (expected.length !== received.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received));
 }
 
 app.post("/webhooks/zavu", (req, res) => {
-  if (!verifyZavuSignature(req, process.env.ZAVU_WEBHOOK_SECRET!)) {
+  const rawBody = req.body.toString("utf8");
+  if (!verifyZavuSignature(rawBody, req.headers["x-zavu-signature"] as string, process.env.ZAVU_WEBHOOK_SECRET!)) {
     return res.status(401).send("Invalid signature");
   }
 
-  const event = JSON.parse(req.body.toString());
+  // Answer fast, then work. Zavu retries non-2xx, so a slow handler turns one
+  // event into five.
   res.status(200).send("OK");
-
-  // Process async
-  processEvent(event).catch(console.error);
+  processEvent(JSON.parse(rawBody)).catch(console.error);
 });
-
-async function processEvent(event: any) {
-  switch (event.type) {
-    case "message.inbound":
-      console.log("Inbound from:", event.data.from, event.data.text);
-      break;
-    case "message.delivered":
-      console.log("Delivered:", event.data.messageId);
-      break;
-    case "message.failed":
-      console.log("Failed:", event.data.messageId, event.data.errorMessage);
-      break;
-  }
-}
 ```
 
 ### Python (Flask)
 
 ```python
-import hmac, hashlib, time
+import hashlib, hmac, os, time
 from flask import Flask, request
 
 app = Flask(__name__)
 
-def verify_zavu_signature(req, secret):
-    header = req.headers.get("X-Zavu-Signature")
+def verify_zavu_signature(raw_body: bytes, header: str, secret: str) -> bool:
     if not header:
         return False
 
-    parts = header.split(",")
-    timestamp = int(next(p for p in parts if p.startswith("t="))[2:])
-    signature = next(p for p in parts if p.startswith("v1="))[3:]
+    parts = {}
+    for piece in header.split(","):
+        key, sep, value = piece.partition("=")
+        if sep:
+            parts[key] = value
 
-    # Reject if older than 5 minutes
-    if int(time.time()) - timestamp > 300:
+    try:
+        t = int(parts["t"])
+    except (KeyError, ValueError):
         return False
 
-    signed_payload = f"{timestamp}.{req.data.decode('utf-8')}"
-    expected = hmac.new(
-        secret.encode(), signed_payload.encode(), hashlib.sha256
-    ).hexdigest()
+    age = int(time.time()) - t
+    if age > 300 or age < -60:
+        return False
 
-    return hmac.compare_digest(expected, signature)
+    received = parts.get("v2") or parts.get("v1")
+    if not received:
+        return False
 
-@app.route("/webhooks/zavu", methods=["POST"])
-def handle_webhook():
-    if not verify_zavu_signature(request, WEBHOOK_SECRET):
+    signed = f"{t}.".encode() + raw_body if "v2" in parts else raw_body
+    expected = hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, received)
+
+@app.post("/webhooks/zavu")
+def zavu_webhook():
+    raw_body = request.get_data()  # bytes, before parsing
+    header = request.headers.get("X-Zavu-Signature", "")
+    if not verify_zavu_signature(raw_body, header, os.environ["ZAVU_WEBHOOK_SECRET"]):
         return "Invalid signature", 401
-
-    event = request.json
-    # Process event...
+    enqueue(request.get_json())
     return "OK", 200
 ```
 
 ### Go
 
 ```go
-package main
-
-import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
-	"io"
-	"net/http"
-	"os"
-	"strconv"
-	"strings"
-	"time"
-)
-
-func verifyZavuSignature(r *http.Request, secret string) ([]byte, bool) {
-	header := r.Header.Get("X-Zavu-Signature")
+func verifyZavuSignature(rawBody []byte, header, secret string) bool {
 	if header == "" {
-		return nil, false
+		return false
 	}
 
-	parts := strings.Split(header, ",")
-	var timestamp int64
-	var signature string
-	for _, part := range parts {
-		if strings.HasPrefix(part, "t=") {
-			timestamp, _ = strconv.ParseInt(part[2:], 10, 64)
-		} else if strings.HasPrefix(part, "v1=") {
-			signature = part[3:]
+	parts := map[string]string{}
+	for _, piece := range strings.Split(header, ",") {
+		if k, v, ok := strings.Cut(piece, "="); ok {
+			parts[k] = v
 		}
 	}
 
-	if time.Now().Unix()-timestamp > 300 {
-		return nil, false
+	t, err := strconv.ParseInt(parts["t"], 10, 64)
+	if err != nil {
+		return false
+	}
+	age := time.Now().Unix() - t
+	if age > 300 || age < -60 {
+		return false
 	}
 
-	body, _ := io.ReadAll(r.Body)
-	signedPayload := strconv.FormatInt(timestamp, 10) + "." + string(body)
-	h := hmac.New(sha256.New, []byte(secret))
-	h.Write([]byte(signedPayload))
-	expected := hex.EncodeToString(h.Sum(nil))
+	received, hasV2 := parts["v2"]
+	if !hasV2 {
+		received = parts["v1"]
+	}
+	if received == "" {
+		return false
+	}
 
-	return body, hmac.Equal([]byte(expected), []byte(signature))
-}
+	mac := hmac.New(sha256.New, []byte(secret))
+	if hasV2 {
+		mac.Write([]byte(strconv.FormatInt(t, 10) + "."))
+	}
+	mac.Write(rawBody)
 
-func main() {
-	secret := os.Getenv("ZAVU_WEBHOOK_SECRET")
-	http.HandleFunc("/webhooks/zavu", func(w http.ResponseWriter, r *http.Request) {
-		body, valid := verifyZavuSignature(r, secret)
-		if !valid {
-			http.Error(w, "Invalid signature", http.StatusUnauthorized)
-			return
-		}
-
-		var event map[string]interface{}
-		json.Unmarshal(body, &event)
-		// Process event...
-		w.WriteHeader(http.StatusOK)
-	})
-	http.ListenAndServe(":3000", nil)
+	return hmac.Equal([]byte(hex.EncodeToString(mac.Sum(nil))), []byte(received))
 }
 ```
 
 ### Ruby (Sinatra)
 
 ```ruby
-require "sinatra"
-require "openssl"
-require "json"
+def verify_zavu_signature(raw_body, header, secret)
+  return false if header.nil? || header.empty?
 
-def verify_zavu_signature(request, secret)
-  header = request.env["HTTP_X_ZAVU_SIGNATURE"]
-  return false unless header
+  parts = {}
+  header.split(',').each do |piece|
+    key, _, value = piece.partition('=')
+    parts[key] = value unless value.empty?
+  end
 
-  parts = header.split(",")
-  timestamp = parts.find { |p| p.start_with?("t=") }&.[](2..)&.to_i
-  signature = parts.find { |p| p.start_with?("v1=") }&.[](3..)
+  t = Integer(parts['t'], exception: false)
+  return false if t.nil?
 
-  return false unless timestamp && signature
-  return false if Time.now.to_i - timestamp > 300
+  age = Time.now.to_i - t
+  return false if age > 300 || age < -60
 
-  raw_body = request.body.read
-  request.body.rewind
-  signed_payload = "#{timestamp}.#{raw_body}"
-  expected = OpenSSL::HMAC.hexdigest("SHA256", secret, signed_payload)
+  received = parts['v2'] || parts['v1']
+  return false if received.nil?
 
-  Rack::Utils.secure_compare(expected, signature)
-end
+  signed = parts['v2'] ? "#{t}.#{raw_body}" : raw_body
+  expected = OpenSSL::HMAC.hexdigest('SHA256', secret, signed)
 
-post "/webhooks/zavu" do
-  halt 401, "Invalid signature" unless verify_zavu_signature(request, ENV["ZAVU_WEBHOOK_SECRET"])
-
-  event = JSON.parse(request.body.read)
-  # Process event...
-  status 200
+  OpenSSL.secure_compare(expected, received)
 end
 ```
 
 ### PHP
 
 ```php
-<?php
-function verifyZavuSignature(string $secret): bool {
-    $header = $_SERVER['HTTP_X_ZAVU_SIGNATURE'] ?? '';
-    if (empty($header)) return false;
+function verifyZavuSignature(string $rawBody, ?string $header, string $secret): bool {
+    if (!$header) return false;
 
-    $parts = explode(',', $header);
-    $timestamp = $signature = null;
-    foreach ($parts as $part) {
-        if (str_starts_with($part, 't=')) $timestamp = (int) substr($part, 2);
-        elseif (str_starts_with($part, 'v1=')) $signature = substr($part, 3);
+    $parts = [];
+    foreach (explode(',', $header) as $piece) {
+        $i = strpos($piece, '=');
+        if ($i !== false) $parts[substr($piece, 0, $i)] = substr($piece, $i + 1);
     }
 
-    if (!$timestamp || !$signature) return false;
-    if (time() - $timestamp > 300) return false;
+    if (!isset($parts['t']) || !ctype_digit($parts['t'])) return false;
+    $t = (int) $parts['t'];
 
-    $rawBody = file_get_contents('php://input');
-    $expected = hash_hmac('sha256', "{$timestamp}.{$rawBody}", $secret);
+    $age = time() - $t;
+    if ($age > 300 || $age < -60) return false;
 
-    return hash_equals($expected, $signature);
+    $received = $parts['v2'] ?? $parts['v1'] ?? null;
+    if ($received === null) return false;
+
+    $signed = isset($parts['v2']) ? "{$t}.{$rawBody}" : $rawBody;
+    return hash_equals(hash_hmac('sha256', $signed, $secret), $received);
 }
-
-if (!verifyZavuSignature(getenv('ZAVU_WEBHOOK_SECRET'))) {
-    http_response_code(401);
-    exit('Invalid signature');
-}
-
-$event = json_decode(file_get_contents('php://input'), true);
-// Process event...
-http_response_code(200);
 ```
+
+## Which scheme is a receiver on?
+
+Read it off the sender. `webhook.signatureVersion` is always present when a
+webhook is configured.
+
+```bash
+npx zavudev senders signature $SENDER_ID
+```
+
+```
+endpoint   https://api.example.com/webhooks/zavu
+signature  v1
+
+Next step:
+  npx zavudev senders update snd_abc --signature-version v1+v2
+
+That sends both signatures at once, so your current receiver is unaffected.
+```
+
+`npx zavudev senders list` has a `signature` column, which is the fastest way to
+see which receivers still have to move.
+
+Over the API it is `GET /v1/senders/{senderId}` -> `webhook.signatureVersion`.
+
+## Moving a webhook to v2
+
+```bash
+# 1. Both signatures, one shared t. Your v1 receiver notices nothing.
+npx zavudev senders update $SENDER_ID --signature-version v1+v2
+
+# 2. Deploy the verifier above. Confirm real deliveries land in YOUR logs.
+
+# 3. Drop v1.
+npx zavudev senders update $SENDER_ID --signature-version v2
+```
+
+Same thing over the API:
+
+```bash
+curl -X PATCH https://api.zavu.dev/v1/senders/$SENDER_ID \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY" \
+  -d '{"webhookSignatureVersion": "v1+v2"}'
+```
+
+A brand-new sender defaults to `v2`. If it points at an endpoint that already
+serves an older sender still reading `v1`, create it on both:
+
+```bash
+npx zavudev senders create --name Support --phone +15551234567 \
+  --webhook-url https://api.example.com/webhooks/zavu \
+  --webhook-events message.inbound \
+  --signature-version v1+v2
+```
+
+`v1` straight to `v2` returns `400`; set `v1+v2` first. Step 2 is the one that
+matters: a receiver that answers `200` before verifying looks identical to a
+working one from Zavu's side, so a passing test request proves nothing. Confirm
+in the receiver's own logs.
+
+Full guide: https://docs.zavu.dev/guides/receiving-messages/signature-migration
+
+## Tool webhooks are a different format
+
+When an agent calls a tool that has a `webhookUrl`, Zavu POSTs with the **same
+header name and a different shape**:
+
+```
+X-Zavu-Signature: 2120e306a4ce...     bare hex, no t=, no v1=/v2=
+X-Zavu-Timestamp: 1786113454812       separate header, MILLISECONDS
+X-Zavu-Tool:      get_order_status
+```
+
+The digest is `HMAC_SHA256(secret, body)`, same as `v1`, but the envelope
+differs, so the verifier above returns false on one of these. Write a second
+one, or branch on whether the header contains `=`.
+
+Two things to know:
+
+- **Every tool call is signed.** Zavu generates a secret when the tool is
+  created and returns it on that response only. Supply your own with `--secret`
+  if you already have one. Lost it? Rotate:
+  `POST /v1/senders/{senderId}/agent/tools/{toolId}/webhook/secret`. Reject when
+  the header is missing; never "skip verification if unsigned".
+- Its payload carries its own `timestamp`, inside the signed body. Do the
+  freshness check against that one rather than the `X-Zavu-Timestamp` header.
+
+A tool declared in a Zavu Function with `defineTool` needs none of this: the
+handler runs inside the function, with no HTTP hop.
 
 ## Retry Policy
 
