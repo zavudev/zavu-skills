@@ -25,6 +25,7 @@ claude mcp add --transport stdio zavudev_sdk_api \
 | `functions` | Workflow + Reference | Zavu Functions: serverless TypeScript with `defineAgent` / `defineTool`, `npx zavudev deploy`, debugging |
 | `send-message` | Workflow | Channel selection decision tree + all message types |
 | `broadcast-campaign` | Workflow | Full broadcast lifecycle: create, review, send, monitor |
+| `conversations` | Reference | Read the inbox: list threads, fetch messages, mark read, reply from the right sender |
 | `webhook-setup` | Reference + Code | Webhook config, signature verification, event handling |
 | `whatsapp-templates` | Reference | Template creation, Meta approval, OTP authentication |
 | `ai-agent` | Reference + Workflow | Agent config via the imperative API (dashboard / REST) — for no-code agent setups |
