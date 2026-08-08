@@ -334,10 +334,14 @@ const result = await zavu.senders.agent.flows.create({
 matcher has no branch for either: a flow created with one never triggers, and
 nothing reports that. Use `keyword` or `always`.
 
-Two more things the API accepts and nothing reads: a `transfer` step's
-`notifyWebhook` and `reason` (the step sends its message and marks the session
-transferred; nobody is notified), and a `collect` step's `date` validation,
-which accepts any text including `tomorrow`. Constrain a date with `choice`, or
+A `transfer` step sends its message, marks the session transferred, and
+**silences the agent for that contact** until a person answers. Their messages
+still arrive and show in the inbox; the agent just stops replying. Any outbound
+message you send them ends the handoff and the agent resumes. Nobody is notified
+for you, though: `notifyWebhook` and `reason` are accepted and never read, so put
+a `tool` step before the transfer if your team needs a ping.
+
+A `collect` step's `date` validation accepts any text including `tomorrow`. Constrain a date with `choice`, or
 validate it in your own tool.
 
 Flow sessions do not expire. A contact who stops answering halfway resumes at
