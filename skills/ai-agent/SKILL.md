@@ -28,7 +28,7 @@ A **Sender** is the API handle you pass as `Zavu-Sender`; **accounts** (a WhatsA
 ## Architecture
 
 ```
-Inbound message -> Flow check (keyword/intent match?)
+Inbound message -> Flow check (keyword match, or an `always` flow?)
                      -> YES: Execute flow steps
                      -> NO: LLM call with system prompt + context + KB
                 -> Agent generates response -> Send reply
@@ -254,6 +254,32 @@ curl -X POST https://api.zavu.dev/v1/calls/call_abc123/hangup \
 
 The transcript is a list of turns, each `{ seq, role, text }` where `role` is `user`, `assistant`, or `tool`. It is included when fetching a single call and omitted from the list. `durationSeconds`, `endReason`, `turnCount`, and `cost` populate once the call ends.
 
+## Addressing an agent
+
+Tools, flows and knowledge bases are reachable two ways, and they are the same
+resource:
+
+```
+/v1/senders/{senderId}/agent/tools     via the sender that answers with it
+/v1/agents/{agentId}/tools             via the agent itself
+```
+
+Use the agent-scoped form when the agent has no sender yet, which is what
+`POST /v1/agents` creates. The sender-scoped form cannot address it, so an
+agent you were told to assemble standalone used to be un-assemblable.
+
+```bash
+AGENT=$(curl -s -X POST https://api.zavu.dev/v1/agents \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY" \
+  -d '{"name":"Ada","provider":"zavu","model":"openai/gpt-4o-mini","systemPrompt":"..."}' \
+  | jq -r .agent.id)
+
+curl -X POST https://api.zavu.dev/v1/agents/$AGENT/tools -d '{...}'
+curl -X POST https://api.zavu.dev/v1/agents/$AGENT/knowledge-bases -d '{...}'
+curl -X POST https://api.zavu.dev/v1/agents/$AGENT/senders -d "{\"senderId\":\"$SENDER_ID\"}"
+curl -X PATCH https://api.zavu.dev/v1/agents/$AGENT -d '{"enabled":true}'
+```
+
 ## Conversational Flows
 
 Flows handle structured conversations (keyword triggers, data collection):
@@ -302,9 +328,20 @@ const result = await zavu.senders.agent.flows.create({
 | Type | Description |
 |------|-------------|
 | `keyword` | Matches specific keywords in message |
-| `intent` | Matches detected intent |
-| `always` | Runs on every message |
-| `manual` | Only triggered via API |
+| `always` | Runs on every inbound message not already inside a flow |
+
+`intent` and `manual` are accepted by the API and stored on the flow, and the
+matcher has no branch for either: a flow created with one never triggers, and
+nothing reports that. Use `keyword` or `always`.
+
+Two more things the API accepts and nothing reads: a `transfer` step's
+`notifyWebhook` and `reason` (the step sends its message and marks the session
+transferred; nobody is notified), and a `collect` step's `date` validation,
+which accepts any text including `tomorrow`. Constrain a date with `choice`, or
+validate it in your own tool.
+
+Flow sessions do not expire. A contact who stops answering halfway resumes at
+the same step whenever they write again, with the variables they had.
 
 ### Step Types
 
@@ -316,6 +353,36 @@ const result = await zavu.senders.agent.flows.create({
 | `tool` | Call a webhook tool |
 | `llm` | Make an LLM call |
 | `transfer` | Transfer to human agent |
+
+### The `tool` step, and the field that looks like an id
+
+```typescript
+{
+  id: "save_lead",
+  type: "tool",
+  config: {
+    toolName: "create_lead",   // the tool's name, or its id
+    action: "call",
+    params: { email: "{{email}}", source: "whatsapp" },
+    storeResultAs: "lead",
+  },
+  nextStepId: "confirm",
+}
+```
+
+`config.toolId` is the original spelling and still works. Either field is
+accepted, and either one may hold the tool's name or its id: `toolId` was read
+as a name for a long time while the dashboard wrote real ids into it, so both
+shapes exist in the wild and both resolve.
+
+Values wrapped in `{{ }}` are replaced with data collected earlier in the flow;
+anything else is passed through literally. Omit `params` for a tool that takes
+none. The tool must already exist on the agent before the flow runs.
+
+A step pointing at a tool the agent does not have ends the session as
+**abandoned** and logs the misconfiguration. It is not counted as a completed
+flow, and nothing is said to the contact: the plain agent picks the conversation
+up from their next message.
 
 ### Flow Operations
 

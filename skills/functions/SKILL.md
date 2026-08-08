@@ -465,6 +465,140 @@ is dropped without a warning and the deploy exits 0, so `interruptable` buys you
 nothing and says nothing. Confirm the block landed the way you wrote it with
 `npx zavudev agents get <agentId>` rather than trusting a green deploy.
 
+## Knowledge base (RAG) in code
+
+`defineAgent` declares it, so an agent that answers from documents is one file
+and one deploy. No separate API call.
+
+```ts
+defineAgent({
+  senderId: process.env.SENDER_ID!,
+  name: "Ada",
+  provider: "zavu",
+  model: "openai/gpt-4o-mini",
+  prompt: "Answer from the store policies. If they do not cover it, say so.",
+  knowledgeBase: {
+    name: "Store policies",
+    documents: [
+      { title: "Returns", content: "# Returns\n\nUnopened: 30 days. Opened: 14 days if faulty." },
+      { title: "Shipping", content: "# Shipping\n\nFree over $50, 3-5 business days." },
+    ],
+  },
+})
+```
+
+Deploy is the source of truth: a document you remove is deleted, one whose
+content changed is re-embedded, and an unchanged one is left alone so a
+redeploy costs nothing. Documents are matched by `title`, so renaming replaces.
+
+```
+Knowledge bases:
+  + Store policies (knowledge base)
+  documents sync in the background; check with `agents knowledge-bases documents list`
+```
+
+The deploy lists the knowledge base, not each document: documents sync after it
+returns, so a per-document line there would report nothing had changed whether
+or not anything had.
+
+**Verify it retrieves, do not assume:**
+
+```sh
+npx zavudev agents test --sender "$SENDER_ID" --message "can I return an opened item?"
+```
+
+The reply reports how many knowledge chunks it used. **Zero on an agent that has
+documents means the answer was not grounded**, which reads exactly like a
+correct answer.
+
+## Flows in code
+
+`defineFlow` declares a deterministic conversation in the same file as the
+agent. Reach for it where the model must not improvise: a fixed sequence of
+questions, a branch on the answer, a tool call with the collected values.
+
+```ts
+import { defineAgent, defineTool, defineFlow } from "@zavudev/functions"
+
+defineFlow({
+  name: "Repair intake",
+  trigger: { type: "keyword", keywords: ["broken", "repair"] },
+  steps: [
+    {
+      id: "ask_issue",
+      type: "collect",
+      config: { variable: "issue", prompt: "What is wrong with it?" },
+      nextStepId: "open",
+    },
+    {
+      id: "open",
+      type: "tool",
+      config: { toolName: "create_ticket", params: { issue: "{{issue}}" } },
+      nextStepId: "done",
+    },
+    { id: "done", type: "message", config: { text: "Logged." } },
+  ],
+})
+```
+
+Only `keyword` and `always` triggers are matched by the engine. Step shapes are
+in the `ai-agent` skill.
+
+Four things specific to declaring a flow in code:
+
+- **It arrives disabled.** A flow intercepts real conversations, so writing one
+  and turning it on are separate decisions. Pass `enabled: true` for the first
+  deploy, or run
+  `npx zavudev agents flows update <flowId> --sender "$SENDER_ID" --enabled`.
+- **Later deploys never change `enabled`.** Pausing a flow during an incident
+  survives a redeploy.
+- **The tool a step names must exist on the agent.** `defineTool` in the same
+  file is enough, since tools reconcile first. A step naming a missing tool is
+  reported and that flow is skipped; the rest of the deploy still lands.
+- **Two things are never touched:** a flow with the same name that this function
+  did not create, and a flow a contact is currently standing in. Both are
+  reported rather than overwritten or deleted.
+
+## Multiple senders in code
+
+`senderId` is the primary. `senderIds` lists the rest:
+
+```ts
+defineAgent({
+  senderId: process.env.SENDER_ID!,
+  senderIds: [process.env.SUPPORT_SENDER_ID!],
+  name: "Ada",
+  provider: "zavu",
+  model: "openai/gpt-4o-mini",
+  prompt: "Be brief.",
+})
+```
+
+Connect-only. A sender you stop listing stays connected and is reported, because
+disconnecting one silently stops a live number from being answered. Disconnect
+with `DELETE /v1/agents/{agentId}/senders/{senderId}` when you mean it.
+
+Documents live inline and the deploy caps source at ~900KB. Bigger than that,
+use `npx zavudev agents knowledge-bases documents add --content-file ./manual.md` instead.
+
+## One file per function
+
+A function deploys as a SINGLE file. The build worker writes your source beside
+its wrapper and runs esbuild on that pair, so this does not deploy:
+
+```ts
+import { formatOrder } from "./helpers"   // Could not resolve
+```
+
+The CLI catches it before uploading and names the offending imports. npm
+dependencies are fine: put them in `package.json` under `dependencies`.
+
+Multi-file needs the whole repository:
+
+```sh
+npx zavudev fn git link acme/my-agent --branch main
+```
+
 ## defineTool reference
 
 ```ts
