@@ -25,7 +25,7 @@ for (const number of result.items) {
   console.log(number.locality);          // San Francisco
   console.log(number.capabilities);      // { sms: true, voice: true, mms: true }
   console.log(number.pricing.monthlyPrice); // 1.25
-  console.log(number.pricing.isFreeEligible); // true (paid plans include the first US number)
+  console.log(number.pricing.isFreeEligible); // true (paid plans include one US number, once per account)
 }
 ```
 
