@@ -581,23 +581,34 @@ with `DELETE /v1/agents/{agentId}/senders/{senderId}` when you mean it.
 Documents live inline and the deploy caps source at ~900KB. Bigger than that,
 use `npx zavudev agents knowledge-bases documents add --content-file ./manual.md` instead.
 
-## One file per function
+## Several files per function
 
-A function deploys as a SINGLE file. The build worker writes your source beside
-its wrapper and runs esbuild on that pair, so this does not deploy:
+Split a function across files and import between them:
 
 ```ts
-import { formatOrder } from "./helpers"   // Could not resolve
+// index.ts
+import { formatOrder } from "./lib/orders"
 ```
 
-The CLI catches it before uploading and names the offending imports. npm
-dependencies are fine: put them in `package.json` under `dependencies`.
+`npx zavudev deploy` starts at the entrypoint (`index.ts` by default, or
+`--source <file>`) and uploads every file it reaches through relative imports.
+Files nothing imports are not deployed, so tests and scratch work stay local.
+The build resolves the imports between the uploaded files.
 
-Multi-file needs the whole repository:
+Refused paths: above the project root (`../shared/x.ts`), `node_modules/`, and
+names starting with `__zavu`. Limits: 200 files, 900,000 bytes in total.
+
+npm dependencies are separate — put them in `package.json` under `dependencies`
+and they are installed and bundled.
+
+To deploy a whole repository on every push instead:
 
 ```sh
 npx zavudev fn git link acme/my-agent --branch main
 ```
+
+Over REST, send `files` (a map of path to contents) with an optional
+`entrypoint`; `sourceCode` remains the shortcut for a one-file function.
 
 ## defineTool reference
 
