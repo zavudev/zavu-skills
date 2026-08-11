@@ -134,8 +134,16 @@ Sending requires **two** verifications, and passing one is not enough:
 | KYC | Identity of the person behind the account | `403 kyc_required` |
 | KYB | The business itself, reviewed by a person | `403 kyb_required` |
 
-Creating and editing drafts needs neither — everything above works unverified,
-and only this call is blocked.
+**A `whatsapp` broadcast is exempt from both.** It can only be built on a
+template, and Meta vets the business and the content when it approves that
+template, so neither code is ever returned for one. What is enforced instead is
+that the template is approved — an unapproved one is refused with
+`400 template_not_approved`, and since WhatsApp passes no other review, that is
+the only gate on it. `smart` is **not** exempt: it can route a contact to SMS or
+email.
+
+Creating and editing drafts needs no check at all — everything above works
+unverified, and only this call is blocked.
 
 ```typescript
 // Send immediately
@@ -229,7 +237,7 @@ await zavu.broadcasts.contacts.add({
 ## Constraints
 
 - Max 1000 contacts per `add` request (batch for larger lists)
-- Sending requires BOTH KYC and KYB (`403 kyc_required` / `kyb_required`); drafting requires neither
+- Sending requires BOTH KYC and KYB (`403 kyc_required` / `kyb_required`) on every channel except `whatsapp`, which requires neither because Meta's template approval stands in for both; `smart` is not exempt. Drafting requires neither
 - Content goes through review before sending, except WhatsApp on a Meta-approved template
 - Most channels also wait on a human (`pending_admin_review`) after the automated pass
 - Balance is reserved (estimated cost) when sending
