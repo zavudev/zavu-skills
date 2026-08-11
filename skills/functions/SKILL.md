@@ -34,6 +34,31 @@ defineTool({
 
 That's a full agent + tool. `npx zavudev deploy` reconciles the live state.
 
+## Project shape
+
+Decide this before you write anything, because restructuring later is the
+expensive kind of rework.
+
+```
+my-agent/
+├── index.ts        entrypoint: defineAgent + defineTool live here
+├── lib/orders.ts   imported by index.ts, deployed with it
+├── package.json    npm dependencies, installed at build time
+└── .zavu/          created by the CLI; do not edit
+```
+
+- **Several files are fine.** `deploy` starts at `index.ts` and uploads every
+  file it reaches through relative imports. Split the prompt, the tools and the
+  business logic however you like.
+- **Only what is imported ships.** A file nothing imports stays on your machine,
+  so tests and scratch work are not deployed.
+- **npm packages are not files.** Declare them under `dependencies` in
+  `package.json`; they are installed and bundled for you.
+- **Limits:** 200 files, 900,000 bytes total. Paths above the project root
+  (`../shared/x.ts`), `node_modules/`, and names starting with `__zavu` are
+  refused. To share code across projects, publish it as an npm package.
+- `--source <file>` names a different entrypoint.
+
 ## When to use Functions vs the imperative AI Agent API
 
 | Use case | Use |
@@ -141,6 +166,9 @@ defineAgent({
   model: "openai/gpt-4o-mini",   // For "zavu" provider, prefix with the underlying provider
   prompt: "You are Bella…",       // System prompt
   channels: ["whatsapp"],         // Optional: default ["*"] = all channels the sender supports
+                                  // Listing a channel the sender does NOT have does
+                                  // not add it — it just never fires. Prefer the
+                                  // default unless you are deliberately excluding one.
   // apiKey: process.env.OPENAI_API_KEY  // only for BYOK providers (openai / anthropic / google / mistral)
 })
 
@@ -216,6 +244,13 @@ the cases where a green deploy did not do what it looks like: a manifest probe
 that threw (nothing was synced, and the command exits non-zero), tools attached
 to an agent whose channels will never call them, or a second agent landing on a
 sender that already has one — where only the first will ever answer.
+
+There is no ✓ at all when an agent ends up with **no** reachable channel: it
+declared `channels` its sender cannot receive, so it is deployed, enabled, and
+unable to receive a single message. The deploy prints the agent and the
+mismatch and exits non-zero. Fix it by changing the agent's `channels` or by
+connecting that channel to the sender (`npx zavudev senders get <id>` lists
+what it actually has).
 
 ### Local development
 
@@ -360,9 +395,33 @@ on every prompt edit.
 > **Tools run on every channel** — plain text (SMS/WhatsApp/Telegram), voice,
 > and inside a flow's `tool` step. A text agent asked to look something up calls
 > the tool and answers with real data (up to 5 tool rounds per reply).
-> `agents test` is the exception: a dry run never EXECUTES tools, because that
-> would fire real webhooks — it warns when the agent has tools this run skipped.
-> Test the handlers themselves with `fn invoke --tool`.
+> By default `agents test` is the exception: it offers the tools, reports which
+> one the agent chose with what arguments, and stops there. So the reply you see
+> is the agent talking about a lookup that never happened — any figure in it was
+> invented, and the run warns you so.
+
+To see the real loop — model picks a tool, the handler answers, the model
+replies with the result:
+
+```sh
+npx zavudev agents test --agent <agentId> --message "where is order ORD-001?" --execute-tools
+```
+
+The handlers run for real, so whatever they do (charge, write, notify) happens.
+Nothing is delivered to a customer, but the side effects are not simulated. Each
+call is printed with whether it answered:
+
+```
+  ✓ get_order_status
+  ✗ charge_card: HTTP 500
+```
+
+A tool that errors is worth as much as one that works: the agent saw the error
+and answered around it, which is what a customer would have received. And if
+the agent calls nothing at all, the run says so — a confident reply with zero
+tool calls is the failure this flag exists to catch.
+
+Use `fn invoke --tool` to exercise one handler in isolation, without the model.
 
 **End-to-end:** send a real message to the sender's WhatsApp/SMS/Telegram number,
 or place a call for a voice agent. The agent runs the LLM and replies on the same
@@ -385,6 +444,14 @@ npx zavudev fn logs --tail
 
 The `--json` flag on `executions list` returns the full payload including `errorMessage` for parseable diagnostics.
 
+**When the deploy itself fails**, the build output is printed under
+`Build output:` — the unresolved import, the syntax error, the package that
+would not install. The one-line status above it is a summary and rarely names
+anything you can act on; the lines under `Build output:` do. The same text stays
+on the deployment as `buildLogs`, readable over REST at
+`GET /v1/functions/deployments/{deploymentId}` (`npx zavudev fn versions list`
+gives you the ids).
+
 ## defineAgent reference
 
 ```ts
@@ -395,7 +462,7 @@ defineAgent({
   model: string,                 // For "zavu": prefix with underlying provider e.g. "openai/gpt-4o-mini"
   prompt: string,                // System prompt.
   apiKey?: string,               // Required for non-"zavu" providers.
-  channels?: string[],           // Default ["*"]. Subset of: sms, whatsapp, telegram, email, instagram, voice
+  channels?: string[],           // Default ["*"] = whatever the sender has. See below.
   messageTypes?: string[],       // Default ["text"]. Filter by message type.
   temperature?: number,          // 0-2.
   maxTokens?: number,            // Cap on output tokens.
