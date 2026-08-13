@@ -48,7 +48,7 @@ export const support = defineAgent({
   name: "Customer Support",
   senderId: process.env.SENDER_ID!,
   provider: "zavu",
-  model: "gpt-4o-mini",
+  model: "deepseek/deepseek-v4-flash-0731",
   // `prompt` here, `systemPrompt` over the REST API. The two paths name this
   // field differently and only `prompt` compiles against @zavudev/functions.
   prompt: "You are a helpful support agent for Acme Corp. Be concise.",
