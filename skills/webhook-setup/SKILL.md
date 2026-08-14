@@ -99,6 +99,7 @@ For `message.inbound`, `data` carries the message. On inbound, `to` is your own 
 | `messageType` | `text`, `image`, `video`, etc. A reply to a `location_request` arrives as `location` (not a new type) with `content.replyToMessageId` set to the request — match on that to correlate. |
 | `text` | Text body or media caption, when present. |
 | `providerTimestamp` | The provider's original receive time (Unix ms) for WhatsApp, Telegram, Instagram, Messenger; `null` for SMS and email. Compare with the top-level `timestamp` to detect delayed deliveries. |
+| `referral` | Click-to-WhatsApp ad attribution. WhatsApp only, and only on the first message of an ad-originated thread. See "Click-to-WhatsApp attribution" below. |
 
 ### Deep-linking to the inbox
 
@@ -123,6 +124,43 @@ Present on `message.inbound` when the contact replied to (quoted) an earlier mes
 | `replyToFrom` | Sender of the quoted message (E.164). |
 | `replyToText` | Truncated snippet of the quoted message's text (empty for media). |
 | `replyToMessageType` | Type of the quoted message (`text`, `image`, ...). |
+
+### Click-to-WhatsApp attribution
+
+When a contact reaches you by tapping a Click-to-WhatsApp (CTWA) ad or a post, `data.referral` carries where they came from. It is WhatsApp only, and it arrives on the **first** message of that conversation and on no message after it — persist it when it arrives, because there is no second delivery. Organic conversations never carry it.
+
+| Field | Description |
+|-------|-------------|
+| `ctwaClid` | Click-to-WhatsApp click identifier. This is what Meta's Conversions API needs to credit a conversion back to the ad. Present on `ad` sources; a `post` has none. |
+| `sourceId` | Identifier of the ad or post that produced the click. |
+| `sourceType` | `ad` or `post`. |
+| `sourceUrl` | Meta permalink to the ad or post. |
+| `headline` | Headline of the ad or post. |
+| `body` | Body copy of the ad or post. |
+| `mediaType` | `image` or `video`, when the ad had media. |
+| `imageUrl` / `videoUrl` / `thumbnailUrl` | Ad media. Only the one matching `mediaType` is present. |
+
+```json
+{
+  "type": "message.inbound",
+  "data": {
+    "messageId": "jd7x2k3m4n5p6q7r8s9t0",
+    "from": "+56912345678",
+    "channel": "whatsapp",
+    "messageType": "text",
+    "text": "Hi, I saw your ad",
+    "referral": {
+      "sourceType": "ad",
+      "sourceId": "120210000000000000",
+      "headline": "Free first consultation",
+      "mediaType": "image",
+      "ctwaClid": "ARIzZm9vYmFyY3R3YWNsaWQ"
+    }
+  }
+}
+```
+
+Fields that do not apply are omitted rather than sent empty, so check for presence before reading. `GET /v1/messages/{messageId}` returns the same object under `content.referral`.
 
 ### Email attachments
 
