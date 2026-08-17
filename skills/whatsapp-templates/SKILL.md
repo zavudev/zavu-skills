@@ -218,6 +218,49 @@ const template = await zavu.templates.get({ templateId: "tpl_abc123" });
 console.log(template.status); // draft | pending | approved | rejected
 ```
 
+## Sync Templates from WhatsApp
+
+A template created outside Zavu — in Meta Business Manager, or by another tool —
+does not exist in Zavu until you import it. And if a `template.status_changed`
+webhook is missed, a template stays `pending` forever. `POST /v1/templates/sync`
+fixes both: it imports Meta templates Zavu does not have (or links them to an
+existing template with the same name) and refreshes the status of the ones it
+does.
+
+Not generated in the SDK yet — call it over REST:
+
+```bash
+# Sync every WhatsApp sender in the project
+curl -X POST https://api.zavu.dev/v1/templates/sync \
+  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+
+# Or scope it to one sender's WhatsApp Business Account
+curl -X POST https://api.zavu.dev/v1/templates/sync \
+  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"senderId": "snd_abc123"}'
+```
+
+```json
+{
+  "accountsSynced": 1,
+  "imported": 2,
+  "linked": 1,
+  "updated": 3,
+  "skipped": 12,
+  "errors": []
+}
+```
+
+- The call is synchronous: it waits for Meta, so it can take a few seconds per
+  account. List templates right after to see the result.
+- `skipped` counts Meta templates left alone — already linked, or rejected /
+  disabled on Meta (those are never imported).
+- A non-empty `errors` with a 200 means one account failed; the rest still synced.
+- Returns 400 when no sender in the project has a WhatsApp Business Account.
+
 ## Send Template Message
 
 ```typescript
