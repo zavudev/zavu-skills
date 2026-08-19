@@ -66,14 +66,14 @@ const { items, nextCursor } = await res.json();
 
 ### Search threads
 
-`q` finds a thread by **who it is with**: phone number, email address, WhatsApp group subject, WhatsApp username, or BSUID. Phone formatting does not matter — `+1 (555) 123-4567` and `15551234567` both match the same thread.
+`search` finds a thread by **who it is with**: phone number, email address, WhatsApp group subject, WhatsApp username, or BSUID. Phone formatting does not matter — `+1 (555) 123-4567` and `15551234567` both match the same thread.
 
 ```bash
-curl "https://api.zavu.dev/v1/conversations?q=%2B56912345678" \
+curl "https://api.zavu.dev/v1/conversations?search=%2B56912345678" \
   -H "Authorization: Bearer $ZAVUDEV_API_KEY"
 
 # by email, by its local part, or by group name
-curl "https://api.zavu.dev/v1/conversations?q=maria" \
+curl "https://api.zavu.dev/v1/conversations?search=maria" \
   -H "Authorization: Bearer $ZAVUDEV_API_KEY"
 ```
 
@@ -81,14 +81,14 @@ Matching is by whole word with prefix matching on the last term: `mar` finds `ma
 
 Three things to know before you build on it:
 
-- **It does not search message bodies.** `q` matches the thread's identity, never what was said inside it.
-- **Results are ranked by relevance, not recency.** The usual "most recently active first" ordering does not apply while `q` is set.
-- **An empty `q` returns nothing**, not everything. Drop the parameter to list all threads.
+- **It does not search message bodies.** `search` matches the thread's identity, never what was said inside it.
+- **Results are ranked by relevance, not recency.** The usual "most recently active first" ordering does not apply while `search` is set.
+- **An empty `search` returns nothing**, not everything. Drop the parameter to list all threads.
 
-`q` combines with `senderId` and `channel`, and paginates with `cursor` like any other list.
+`search` combines with `senderId` and `channel`, and paginates with `cursor` like any other list.
 
 ```typescript
-const params = new URLSearchParams({ q: "+56912345678", channel: "whatsapp" });
+const params = new URLSearchParams({ search: "+56912345678", channel: "whatsapp" });
 const res = await fetch(`https://api.zavu.dev/v1/conversations?${params}`, {
   headers: { Authorization: `Bearer ${process.env.ZAVUDEV_API_KEY}` },
 });
