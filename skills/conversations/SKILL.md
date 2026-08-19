@@ -64,6 +64,37 @@ const res = await fetch("https://api.zavu.dev/v1/conversations?limit=25", {
 const { items, nextCursor } = await res.json();
 ```
 
+### Search threads
+
+`q` finds a thread by **who it is with**: phone number, email address, WhatsApp group subject, WhatsApp username, or BSUID. Phone formatting does not matter — `+1 (555) 123-4567` and `15551234567` both match the same thread.
+
+```bash
+curl "https://api.zavu.dev/v1/conversations?q=%2B56912345678" \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY"
+
+# by email, by its local part, or by group name
+curl "https://api.zavu.dev/v1/conversations?q=maria" \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY"
+```
+
+Matching is by whole word with prefix matching on the last term: `mar` finds `maria@example.com`, and `+1555` finds `+15551234567`. A fragment from the middle or the end of a number (`4567`) does **not** match — search the full number or a prefix.
+
+Three things to know before you build on it:
+
+- **It does not search message bodies.** `q` matches the thread's identity, never what was said inside it.
+- **Results are ranked by relevance, not recency.** The usual "most recently active first" ordering does not apply while `q` is set.
+- **An empty `q` returns nothing**, not everything. Drop the parameter to list all threads.
+
+`q` combines with `senderId` and `channel`, and paginates with `cursor` like any other list.
+
+```typescript
+const params = new URLSearchParams({ q: "+56912345678", channel: "whatsapp" });
+const res = await fetch(`https://api.zavu.dev/v1/conversations?${params}`, {
+  headers: { Authorization: `Bearer ${process.env.ZAVUDEV_API_KEY}` },
+});
+const { items } = await res.json();
+```
+
 ### Paginate
 
 `nextCursor` is opaque. Pass it back verbatim as `cursor`; never build one by hand. `nextCursor` is `null` on the last page.
