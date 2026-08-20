@@ -219,7 +219,19 @@ Once enabled, the sender's number answers inbound calls automatically.
 
 ### Place an outbound call
 
-There is no `calls` resource in the SDK yet — call the REST endpoint directly. `to` is the only required field; `senderId` defaults to the project's default sender (whose agent must have voice enabled).
+The SDK has a `calls` resource since `@zavudev/sdk` 0.56.0. `to` is the only required field; `senderId` defaults to the project's default sender (whose agent must have voice enabled).
+
+```ts
+const { call } = await zavu.calls.create({
+  to: "+56912345678",
+  senderId: "snd_abc123",
+  greeting: "Hi, this is Acme calling about your appointment.",
+  maxDurationMinutes: 10,
+  metadata: { campaign: "appointment_reminders" },
+})
+```
+
+Over REST (or on an older SDK):
 
 ```bash
 curl -X POST https://api.zavu.dev/v1/calls \
@@ -237,6 +249,8 @@ curl -X POST https://api.zavu.dev/v1/calls \
 Returns `202` with the call object as it starts dialing. `greeting` and `maxDurationMinutes` override the agent's config for this call only.
 
 ### Fetch a call and its transcript
+
+SDK: `zavu.calls.retrieve(callId)` (includes the transcript), `zavu.calls.list({ status, direction })` (auto-paginating), `zavu.calls.hangup(callId)`. Over REST:
 
 ```bash
 # Single call, including the ordered transcript

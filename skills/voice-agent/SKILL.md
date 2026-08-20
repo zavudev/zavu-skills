@@ -186,7 +186,7 @@ npx zavudev calls hangup <callId>
 the only record of what the agent actually said, and the first place to look
 when a call went wrong.
 
-Over REST:
+From the SDK (`@zavudev/sdk` 0.56.0+; earlier versions have no `calls` resource — call the REST endpoints directly):
 
 ```ts
 const { call } = await zavu.calls.create({
@@ -241,8 +241,6 @@ npx zavudev senders get <senderId>    # channels includes "voice" once it can ca
 
 ## Requirements and cost
 
-- **Voice Agents must be enabled for your team.** The calls API returns `403`
-  otherwise.
 - The sender's agent needs `voice.enabled: true`, or `POST /v1/calls` returns
   `400 "The sender's agent does not have voice enabled"`.
 - **Not available with test-mode API keys.**
