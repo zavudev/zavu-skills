@@ -1,13 +1,13 @@
 ---
 name: contacts-management
-description: Manage multi-channel contacts with channel operations, merge suggestions, phone introspection, and email validation.
+description: Manage multi-channel contacts with channel operations, search, merging, phone introspection, and email validation.
 ---
 
 # Contacts Management
 
 ## When to Use
 
-Use this skill when building code to create, update, or manage contacts and their communication channels. Covers the multi-channel contact model, merge operations, phone number introspection, and email address validation.
+Use this skill when building code to create, update, or manage contacts and their communication channels. Covers the multi-channel contact model, search, merge operations, phone number introspection, and email address validation.
 
 ## Contact Model
 
@@ -120,7 +120,43 @@ do {
   }
   cursor = result.nextCursor ?? undefined;
 } while (cursor);
+
+// Search by name, phone, or email
+const found = await zavu.contacts.list({ search: "marta", limit: 25 });
 ```
+
+`search` is case- and accent-insensitive, and matches a trailing fragment of a
+phone number, so `5551234` finds `+14155551234`. It matches the contact's
+`displayName` and WhatsApp profile name as well as its identifiers.
+
+Contacts created automatically from an inbound message have no `displayName`,
+so they are only findable by their identifier until you name one — see
+**Update Contact**.
+
+Two things to know before paginating a search: results come back in relevance
+order rather than newest-first, and `cursor` is opaque in both modes. Pass back
+exactly what the previous response returned, and start a fresh pagination run
+whenever the search term changes.
+
+## Tags
+
+Flat labels on a contact, for grouping an audience you send to more than once.
+Many-to-many, no hierarchy, no colours.
+
+```typescript
+// Contacts carrying a tag
+const { items } = await zavu.contacts.list({ tag: "vip" });
+
+// Repeat the parameter for AND — carrying BOTH tags, not either
+// GET /v1/contacts?tag=vip&tag=chile
+```
+
+Tags are matched by name, case-insensitively. An unknown tag returns `400`
+rather than being ignored: a typo that silently matched every contact would be a
+worse answer than an error.
+
+Creating, renaming and assigning tags is done in the dashboard. There is no tag
+CRUD in the API yet — do not tell a user they can create one from code.
 
 ## Channel Operations
 
@@ -157,41 +193,50 @@ await zavu.contacts.channels.remove({
 
 ## Update Contact
 
+Updatable fields: `displayName`, `defaultChannel`, `metadata`.
+
 ```typescript
 await zavu.contacts.update({
   contactId: "ct_abc123",
+  displayName: "John Doe",
   defaultChannel: "whatsapp",
   metadata: { plan: "premium", region: "US" },
 });
 
-// Clear default channel
+// Clear a field by passing null
 await zavu.contacts.update({
   contactId: "ct_abc123",
+  displayName: null,      // falls back to the contact's identifier
   defaultChannel: null,
 });
 ```
 
+Contacts created automatically from an inbound message have no `displayName` —
+they show as their phone number or email until you set one. Naming them is what
+makes them findable by name via `contacts.list({ search })`.
+
+To change a contact's phone number or email address, add or remove a channel
+(see **Channel Operations**) rather than updating the contact.
+
 ## Merge Contacts
 
-When duplicate contacts are detected, the API suggests merges:
+Merge one contact into another. Every channel on the source moves to the target,
+the target's primary phone and email are recomputed, and the source is marked as
+merged and stops appearing in listings.
 
 ```typescript
-// Check for merge suggestion
-const contact = await zavu.contacts.get({ contactId: "ct_abc123" });
-if (contact.suggestedMergeWith) {
-  // Merge source into target (all channels move to target)
-  const merged = await zavu.contacts.merge({
-    contactId: "ct_abc123",
-    sourceContactId: contact.suggestedMergeWith,
-  });
-  console.log("Merged channels:", merged.channels.length);
-}
-
-// Dismiss suggestion
-await zavu.contacts.mergeSuggestion.dismiss({
-  contactId: "ct_abc123",
+const merged = await zavu.contacts.merge({
+  contactId: "ct_target123",        // survives
+  sourceContactId: "ct_source456",  // absorbed
 });
+console.log("Merged channels:", merged.channels.length);
 ```
+
+Merging is not reversible — check the two contacts are the same person first.
+
+**Zavu does not detect duplicates for you.** There is no merge suggestion: decide
+which contacts to merge from your own data. A practical way to find candidates is
+to list contacts and group them by a shared identifier or a normalized name.
 
 ## Phone Introspection
 
