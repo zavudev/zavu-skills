@@ -120,6 +120,17 @@ async function allConversations() {
 
 The `channel` filter is applied to each page after it is fetched, so a filtered page can come back shorter than `limit` — even empty — while `nextCursor` is still set. Keep paginating until `nextCursor` is `null`; do not stop on a short page.
 
+### Telling the two sides apart
+
+Every message carries `direction` (`inbound` or `outbound`). Use it — **`status` cannot tell them apart**, because an inbound message is stored as `delivered` too. Deriving it by comparing `to` against `contactIdentifier` works for one-to-one threads and breaks on groups, where `from` is the participant rather than the thread key.
+
+```typescript
+for (const m of items) {
+  const mine = m.direction === "outbound";
+  console.log(`${mine ? "→" : "←"} ${m.text}`);
+}
+```
+
 ### Read a thread
 
 ```bash
