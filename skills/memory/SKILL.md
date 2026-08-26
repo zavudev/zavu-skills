@@ -53,36 +53,6 @@ await ctx.memory.add("Prefers WhatsApp over email.");
 await ctx.memory.contact!.add("Prefers WhatsApp over email.");
 ```
 
-## Before anything else: the key needs `memory` permissions
-
-Memory is gated by the `memory:read` / `memory:write` permissions, and **an API
-key does not get them by default** — a key minted in the dashboard carries
-`messages:send` and `messages:read` only, so every Memory call answers:
-
-```
-403 {"code":"forbidden","message":"Missing required permission: memory:read"}
-```
-
-| Calling from | Works today |
-|---|---|
-| **Inside a Zavu Function** (`ctx.memory`) | **Yes**, for a function created recently — Zavu mints its key with both permissions. An older function keeps the narrower key it was created with (see below) |
-| The CLI (`npx zavudev memory ...`) | Only if the logged-in key carries them |
-| REST / `curl` | Only if the key carries them |
-
-So `ctx.memory` is the path that works out of the box, and the one to reach for.
-If the CLI or a `curl` returns that 403, the endpoint is fine and the key is the
-problem — ask Zavu support to grant `memory:read` / `memory:write` on it rather
-than debugging the request.
-
-A function created **before** Memory shipped keeps its original key and hits the
-same 403 on its first write. **Redeploying does not re-mint the key**, so the
-403 survives every fix you try in your own code — if `ctx.memory` throws it,
-stop debugging the function and ask support to widen the key.
-
-If you hit that 403 with a key you made by hand, do not conclude Memory is off
-for the whole project: the function's own key is a different key, and it is
-probably fine.
-
 ## In a function or tool: `ctx.memory`
 
 Requires `@zavudev/functions` **0.3.0 or later**.
@@ -176,9 +146,6 @@ against the real API before shipping it.
 
 ## From the CLI
 
-Requires a key with `memory:read` / `memory:write` (see above) — otherwise
-every command below returns `Missing required permission`.
-
 Everything takes `--scope project` (default) / `--scope contact:<id>` /
 `--scope conversation:<id>`.
 
@@ -207,7 +174,6 @@ separate group (`memory collections create`, plural).
 ## From the REST API
 
 `@zavudev/sdk` does **not** have a memory resource yet — use `curl` or `fetch`.
-Same permission precondition as the CLI: a default dashboard key gets `403`.
 
 Scope is passed **in the body** on the two POSTs that write or search facts,
 and as a **`?scope=` query parameter** on everything else. That asymmetry is
@@ -243,9 +209,6 @@ A collection is defined once per project; its **items are per-scope**, so the
 same collection holds a separate set of documents for the project, for each
 contact, and for each conversation. `DELETE /v1/memory/collections/{name}`
 removes it and its items in **every** scope.
-
-Permissions: `memory:read` and `memory:write`. The API key Zavu Functions
-auto-provisions already carries both.
 
 ## Writing facts an agent can actually find
 
