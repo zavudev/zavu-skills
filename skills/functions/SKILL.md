@@ -181,7 +181,8 @@ defineTool({
     required: ["orderId"],
   },
   handler: async (args, ctx) => {
-    // ctx: { projectId, functionId, slug, awsRequestId, messageId?, contactPhone?, sessionId?, log }
+    // ctx: { projectId, functionId, slug, log, memory, contactId?, conversationId?,
+    //        senderId?, channel?, messageId?, contactPhone?, sessionId?, callId? }
     const res = await fetch(`https://pos.example.com/orders/${args.orderId}`, {
       headers: { Authorization: `Bearer ${process.env.POS_API_KEY}` },
     })
@@ -701,13 +702,51 @@ defineTool({
   projectId: string,
   functionId: string,
   slug: string,
-  awsRequestId: string,
+  awsRequestId?: string,
   messageId?: string,            // ID of the triggering inbound (when called by agent)
   contactPhone?: string,
   sessionId?: string,            // Active flow session if any
+  channel?: string,              // "whatsapp" | "sms" | "voice" | "email" | ...
+  callId?: string,               // The voice call in progress. Voice channel only
+  contactId?: string,            // The contact Zavu resolved, when it knows who is on the other side
+  conversationId?: string,       // The inbox thread this conversation belongs to
+  senderId?: string,             // The sender the conversation is running on
   log: (...args) => void,        // console.log proxy that appears in `npx zavudev fn logs --tail`
+  memory: Memory,                // What the agent remembers. See below
 }
 ```
+
+### `ctx.memory` — what the agent remembers
+
+Requires `@zavudev/functions` **0.3.0+**. Two ways to recall, one API:
+
+```ts
+// By meaning — embedded on write, retrieved semantically
+await ctx.memory.contact!.add("Prefers WhatsApp over email.")
+const hits = await ctx.memory.contact!.search("how they like to be reached", { minScore: 0.3 })
+
+// By key — JSON in, JSON out
+const orders = ctx.memory.contact!.collection("orders")
+await orders.set("ORD-1", { status: "shipped" })
+const order = await orders.get("ORD-1")   // null when absent
+```
+
+Every read and write happens in exactly one **scope**, and scopes are isolated:
+
+| Handle | Scope | Present when |
+|---|---|---|
+| `ctx.memory` | project — shared by every conversation | always |
+| `ctx.memory.contact` | the person being talked to | `undefined` outside a conversation |
+| `ctx.memory.conversation` | the current thread | `undefined` outside a conversation |
+| `ctx.memory.forContact(id)` / `forConversation(id)` | one you name | always |
+
+**The default is project scope.** `ctx.memory.add(fact)` with no options writes
+something every other customer's conversation can then recall — use
+`ctx.memory.contact` for anything about a person. `contact` and `conversation`
+are optional, so handle their absence: a tool that assumes a contact throws
+`MemoryScopeError` the first time it runs from a cron trigger.
+
+Full surface, scopes, limits, the CLI and the REST API: **`memory` skill**.
 
 ## defineFunction reference (optional)
 
