@@ -127,6 +127,11 @@ const page = await orders.list({ prefix: "ORD-2026", limit: 50 });
 // { items: [{ key, value, rev, createdAt, updatedAt }], nextCursor }
 ```
 
+**Keys are `A-Z a-z 0-9 . _ : @ -`, 1–255 characters — no `+`.** A phone number
+in E.164 is not a valid key: `set("+56940560201", …)` is refused with `400`.
+Key it by its digits (`56940560201`) or with a prefix (`phone:56940560201`), and
+keep the E.164 inside the value.
+
 **`query` needs an index, and indexes are declared at creation.** Writing to an
 unknown collection creates it implicitly with **no indexes**, and indexes can
 never be added afterwards. If you will ever look items up by a field, create the

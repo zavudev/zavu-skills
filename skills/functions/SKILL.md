@@ -731,6 +731,10 @@ await orders.set("ORD-1", { status: "shipped" })
 const order = await orders.get("ORD-1")   // null when absent
 ```
 
+Collection keys are `A-Z a-z 0-9 . _ : @ -` — no `+`, so an E.164 phone number
+is not a valid key. Use its digits (`56940560201`) or a prefix
+(`phone:56940560201`) and keep the E.164 in the value.
+
 Every read and write happens in exactly one **scope**, and scopes are isolated:
 
 | Handle | Scope | Present when |
