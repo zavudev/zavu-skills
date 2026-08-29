@@ -158,8 +158,13 @@ Edit `index.ts`:
 ```ts
 import { defineAgent, defineTool, defineFunction } from "@zavudev/functions"
 
+// Four fields are required: name, provider, model, and the prompt (under
+// `prompt` or `systemPrompt`). A declaration missing any of them is SKIPPED —
+// the deploy still succeeds, and you get a function with no agent. `description`
+// and `instructions` are not fields.
 defineAgent({
-  senderId: process.env.SENDER_ID!,
+  senderId: process.env.SENDER_ID!,  // Optional: omit to declare it standalone
+                                      // and connect senders afterwards.
   name: "Bella",
   provider: "zavu",              // Zavu's AI gateway (charged from project balance)
                                   // Or "openai" / "anthropic" / "google" / "mistral" with BYOK + apiKey
