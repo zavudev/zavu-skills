@@ -21,7 +21,7 @@ A **Sender** is the API handle you pass as `Zavu-Sender`; **accounts** (a WhatsA
 
 ```
 Is recipient an email address?
-  -> YES: channel = "email" (requires KYC verification)
+  -> YES: channel = "email" (the sender needs an email channel: a verified domain)
 Is message type non-text (image, video, buttons, list, template, etc.)?
   -> YES: channel = "whatsapp" (auto-selected)
 Need voice call / TTS?
@@ -451,15 +451,17 @@ do {
 | Error Code | Meaning | Fix |
 |------------|---------|-----|
 | `whatsapp_window_closed` | 24h window not open | Use template message instead |
-| `a2p_limit_exceeded` | Free plan monthly allowance reached: WhatsApp, Telegram, Instagram and Messenger share 2,000 messages/month | Upgrade to a paid plan (no caps) or wait for the monthly reset on the 1st |
+| `a2p_limit_exceeded` | Free plan monthly allowance reached: WhatsApp, Telegram, Instagram and Messenger share 2,000 messages/month. Separate from the daily ceiling below, which never prevents reaching this monthly figure | Upgrade to a paid plan (no caps) or wait for the monthly reset on the 1st |
 | `insufficient_balance` | HTTP 402: prepaid balance cannot cover the send. Email is billed from balance in 1,000-message blocks ($0.40/1k transactional, $0.80/1k marketing); SMS and voice are billed per message | Add funds from the dashboard, then retry |
 | `url_not_verified` | Message has unverified URLs | Submit URLs via `/v1/urls` first |
 | `url_shortener_blocked` | URL shortener detected | Use full destination URL |
-| `email_kyc_required` | Email needs KYC | Complete verification in dashboard |
-| `urls_blocked_unverified` | Unverified account + URLs | Complete KYC verification |
+| `destination_not_verified` | HTTP 403: the account has verified nothing yet, so `sms`, `sms_oneway` and `voice` reach only the phone numbers the project has verified. `details.verifiedNumbers` lists them. Same code on `POST /v1/calls` | Send to a verified number, verify the number you meant (see below), or verify identity / add a payment method / settle a deposit / subscribe to reach any destination |
+| `daily_limit_exceeded` | HTTP 429: the channel group's daily ceiling, `details.limit` says which. Verified nothing: 25/day across `sms` + `sms_oneway`, 5/day `voice`, 100/day across WhatsApp + Telegram + Instagram + Messenger. Past that floor: 200/day SMS, or 10,000 once identity or business verification is approved; on Free, 50/day voice and 250/day conversational. Paid plans have no voice or conversational ceiling. Email: the plan quota (100/day on Free). Counts reset at 00:00 UTC | Wait for the reset, or verify identity / add a payment method to raise it (upgrade the plan for email) |
 | `EMAIL_INVALID_RECIPIENT` | Malformed email address (async, on the failed message) | Fix the address; pre-check lists with `POST /v1/introspect/email` |
 | `EMAIL_DOMAIN_NOT_FOUND` | Recipient domain has no MX or A records (async) | Remove the address; the send would hard bounce |
 | `EMAIL_RECIPIENT_SUPPRESSED` | Address bounced or complained before (async) | Remove it from your lists |
+
+**How a number gets verified, and what lifts the restriction.** A new account that has proven nothing reaches only its verified numbers on `sms`, `sms_oneway` and `voice`; every other channel is open from the start. The developer verifies a number from the dashboard's **Sandbox** screen: generate a code, open the WhatsApp link (or scan the QR) on the phone to verify, and send the pre-filled `VERIFY-` message to Zavu's sandbox number. The number is marked verified automatically; one verification covers WhatsApp, SMS and calls; up to 5 numbers per project; a code expires after 10 minutes. There is no API for this step. Any one of identity verification (KYC), a saved payment method, a settled deposit, or a paid plan opens every destination. Business verification (KYB) never gates sending; it gates 10DLC registration. Email has no verification gate: a sender with a verified domain sends from day one within the plan quota (100/day and 3,000/month on Free). Reference: https://docs.zavu.dev/concepts/sending-limits
 
 Email sends are pre-validated automatically at dispatch: guaranteed hard bounces (bad syntax, dead domain, suppressed address) are failed with the codes above instead of being sent, so they never hurt your bounce rate. These surface asynchronously on the message (`status: "failed"` + `errorCode`) and in the `message.failed` webhook. Advisory signals (role addresses like `info@`, disposable domains) never block a send — check them upfront with `POST /v1/introspect/email`.
 

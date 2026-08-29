@@ -122,7 +122,7 @@ except APIError as e:
 ## Key Business Rules
 
 1. **WhatsApp 24h window**: Free-form messages require an open conversation window (user messaged you in last 24h). Use template messages to initiate conversations outside the window.
-2. **Email requires KYC**: Complete identity verification in the dashboard before sending emails.
+2. **New accounts reach only verified numbers on carrier channels**: until the account verifies its identity, saves a payment method, settles a deposit, or subscribes to a paid plan, `sms`, `sms_oneway` and `voice` reach only phone numbers verified from the dashboard's Sandbox screen (`403 destination_not_verified`; `details.verifiedNumbers` lists them). Daily ceilings per channel group return `429 daily_limit_exceeded`. Email needs no verification, only a sender with a verified domain. Business verification (KYB) gates 10DLC registration only, never sending. See the `send-message` skill.
 3. **URL verification**: SMS/email messages containing URLs require those URLs to be pre-verified via `/v1/urls`.
 4. **URL shorteners blocked**: bit.ly, t.co, etc. are always blocked. Use full destination URLs.
 5. **Smart routing**: Channel `auto` uses ML to pick the best channel based on cost, deliverability, and contact preferences.
