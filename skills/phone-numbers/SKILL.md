@@ -87,8 +87,9 @@ console.log(result.phoneNumber.status); // "active"
 
 | Type | Description |
 |------|-------------|
-| `local` | Local phone number |
-| `national` | National number |
+| `local` | Geographic number, tied to a city or region |
+| `national` | Non-geographic number, valid country-wide |
+| `mobile` | Mobile-prefix number. In several countries it is the only type in stock, and in some markets the only type that can receive SMS |
 | `tollFree` | Toll-free number |
 
 ## Manage Phone Numbers
