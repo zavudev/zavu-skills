@@ -55,5 +55,6 @@ One sender can carry several channels at once — that is the point: one `Zavu-S
 ## Constraints
 
 - A sender belongs to one project; an account is routed by at most one sender.
-- Webhooks and AI agents are configured per sender, so they apply to every channel that sender carries.
+- Webhooks are configured per sender and apply to every channel that sender carries.
+- An AI agent is attached per sender but answers only the channels its own `triggerOnChannels` names. A channel the sender receives on that the list omits is dropped before the agent sees it — no reply, no error, and the Playground still answers, because it bypasses the filter. The drop is recorded: `GET /v1/senders/{senderId}/agent/executions` returns it with `status: "filtered"` and the channel in `errorMessage`. Use `["*"]` unless you are deliberately excluding one.
 - Free plans include two connection slots (one can be a WhatsApp account); paid plans add connections at a monthly fee per connection. Creating senders never costs anything.

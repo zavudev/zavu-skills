@@ -81,7 +81,7 @@ const result = await zavu.senders.agent.create({
   apiKey: process.env.PROVIDER_API_KEY,
   contextWindowMessages: 10,
   includeContactMetadata: true,
-  triggerOnChannels: ["sms", "whatsapp"],
+  triggerOnChannels: ["*"],
   triggerOnMessageTypes: ["text"],
 });
 console.log(result.agent.id); // agent_xxx
@@ -658,6 +658,21 @@ npx zavudev agents test --agent <agentId> --message "what do you cost?" --no-kno
 ```typescript
 await zavu.senders.agent.delete({ senderId: "snd_abc123" });
 ```
+
+## Channels an agent answers on
+
+`triggerOnChannels` is a whitelist, and it is the most common way to end up with
+an agent that looks finished and is silent. An inbound message whose channel is
+not in the list is dropped before the agent runs: no reply and no error, while
+the dashboard Playground keeps answering, because it bypasses the filter. Look
+for it in `GET /v1/senders/{senderId}/agent/executions`, where the drop appears
+with `status: "filtered"` and an `errorMessage` naming the channel that arrived
+and the channels the agent listens on.
+
+`["*"]` means every channel the sender carries, and is the right default. Narrow
+it only to deliberately exclude a channel, and remember that adding a channel to
+the sender later does NOT add it here. Unknown strings are accepted and match
+nothing, so a typo behaves exactly like a channel you meant to exclude.
 
 ## Constraints
 
