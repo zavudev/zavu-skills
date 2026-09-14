@@ -12,7 +12,7 @@ Use this skill when building code to search for, purchase, or manage phone numbe
 ## Search Available Numbers
 
 ```typescript
-const result = await zavu.phoneNumbers.available.list({
+const result = await zavu.phoneNumbers.searchAvailable({
   countryCode: "US",
   type: "local",
   contains: "555",
@@ -31,7 +31,7 @@ for (const number of result.items) {
 
 **Python:**
 ```python
-result = zavu.phone_numbers.available.list(
+result = zavu.phone_numbers.search_available(
     country_code="US",
     type="local",
     contains="555",
@@ -43,9 +43,9 @@ for number in result.items:
 
 **Go:**
 ```go
-result, err := client.PhoneNumbers.SearchAvailable(context.TODO(), zavudev.PhoneNumberSearchParams{
-    CountryCode: zavudev.String("US"),
-    Type:        zavudev.String("local"),
+result, err := client.PhoneNumbers.SearchAvailable(context.TODO(), zavudev.PhoneNumberSearchAvailableParams{
+    CountryCode: "US",
+    Type:        zavudev.PhoneNumberTypeLocal,
     Contains:    zavudev.String("555"),
     Limit:       zavudev.Int(10),
 })
@@ -62,9 +62,9 @@ result.items.each { |number| puts "#{number.phone_number} #{number.pricing.month
 
 **PHP:**
 ```php
-$result = $client->phoneNumbers->searchAvailable([
-    'countryCode' => 'US', 'type' => 'local', 'contains' => '555', 'limit' => 10,
-]);
+$result = $client->phoneNumbers->searchAvailable(
+    countryCode: 'US', type: 'local', contains: '555', limit: 10,
+);
 foreach ($result->items as $number) {
     echo $number->phoneNumber . ' ' . $number->pricing->monthlyPrice . "\n";
 }
@@ -73,7 +73,7 @@ foreach ($result->items as $number) {
 ## Purchase Phone Number
 
 ```typescript
-const result = await zavu.phoneNumbers.create({
+const result = await zavu.phoneNumbers.purchase({
   phoneNumber: "+15551234567",
   name: "Primary Line",
 });
@@ -81,7 +81,7 @@ console.log(result.phoneNumber.id);     // pn_abc123
 console.log(result.phoneNumber.status); // "active"
 ```
 
-**Buying numbers requires a paid plan.** The Free plan cannot purchase phone numbers (the API returns `402` with code `paid_plan_required`). Paid plans include the first US number at no charge.
+**Buying numbers requires a paid plan.** The Free plan cannot purchase phone numbers (the API returns `402` with code `paid_plan_required`). A paid plan includes one number at no charge, once per account: it must be a US or Canadian number (a +1 number) costing $20 a month or less. `pricing.isFreeEligible` in search results marks the numbers that qualify.
 
 ## Phone Number Types
 
@@ -102,45 +102,68 @@ for (const pn of numbers.items) {
 }
 
 // Get details
-const pn = await zavu.phoneNumbers.get({ phoneNumberId: "pn_abc123" });
+const pn = await zavu.phoneNumbers.retrieve("pn_abc123");
 
 // Rename
-await zavu.phoneNumbers.update({
-  phoneNumberId: "pn_abc123",
-  name: "Support Line",
-});
+await zavu.phoneNumbers.update("pn_abc123", { name: "Support Line" });
 
 // Assign to sender
-await zavu.phoneNumbers.update({
-  phoneNumberId: "pn_abc123",
-  senderId: "snd_abc123",
-});
+await zavu.phoneNumbers.update("pn_abc123", { senderId: "snd_abc123" });
 
 // Unassign from sender
-await zavu.phoneNumbers.update({
-  phoneNumberId: "pn_abc123",
-  senderId: null,
-});
+await zavu.phoneNumbers.update("pn_abc123", { senderId: null });
 
 // Release number (must not be assigned to a sender)
-await zavu.phoneNumbers.delete({ phoneNumberId: "pn_abc123" });
+await zavu.phoneNumbers.release("pn_abc123");
 ```
 
 ## Regulatory Requirements
 
-Some countries require additional documentation before phone numbers can be activated:
+Whether a number needs regulatory information (an address, a document, or text) is decided per number by the carrier, not by a fixed country list. The purchase looks the requirements up for the exact number before charging anything. The whole flow works over the API:
+
+1. `GET /v1/phone-numbers/requirements?phoneNumber=%2B4930123456&type=local` (encode `+` as `%2B`; an unencoded `+` also works). The response is the list the purchase of that number validates against; when the number's own requirements cannot be resolved, it is the list for its country and `type`. Empty `items` means the number needs nothing: buy it normally. A `502 requirements_unavailable` means the lookup failed: retry, never treat it as "no requirements" (US and Canadian numbers are sold as numbers without requirements even then).
+2. For each `requirementTypes[]` entry: `address` -> create one with `POST /v1/addresses` in the same project (`firstName` and `lastName` are required) and use its `id`; `document` -> upload one (`POST /v1/documents`, see below) and use its `id`; `textual` -> the text itself; `action` -> send nothing for it. One entry per id.
+3. Purchase with `type` (required when sending requirements) and `regulatoryRequirements`. These fields are not in the SDK yet, so call REST:
+
+```bash
+curl -X POST https://api.zavu.dev/v1/phone-numbers \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "+4930123456",
+    "type": "local",
+    "regulatoryRequirements": [
+      { "requirementType": "<requirementTypes[].id>", "fieldValue": "<address id>" },
+      { "requirementType": "<requirementTypes[].id>", "fieldValue": "<document id>" }
+    ]
+  }'
+```
+
+4. The number is bought and billed at once with `regulatoryStatus: "pending_review"`. It cannot send messages or place calls until `regulatoryStatus` is `"approved"`. The status is re-checked every 6 hours: poll `GET /v1/phone-numbers/{phoneNumberId}`.
+5. Assign it to a sender (`PATCH /v1/phone-numbers/{phoneNumberId}` with `senderId`), before or after approval. A number assigned while under review is connected to that sender when approved, retried until it succeeds; a sender created over the API is set up for SMS as part of the assignment. A `rejected` number cannot be assigned (`400`). A number that stays `pending_review` for long needs support.
+
+Errors, none of which charge anything:
+
+| Response | Meaning |
+|---|---|
+| `400 regulatory_compliance_required` | The number needs information and none was sent or can be reused. `details.missingRequirements` lists `{ id, name, type }`. |
+| `400 invalid_request` | A required id is missing, an id is unknown or repeated, an address/document is not from this project or was rejected, or it could not be registered for review. `details` names the requirement. |
+| `400 number_unavailable` | The number is gone, or not listed under the `type` sent. |
+| `502 requirements_unavailable` | The requirements could not be looked up. Retry. Not returned for US and Canadian numbers. |
+
+Reuse: what you submitted is kept for your project under the number's country and `type`. A later purchase there may omit `regulatoryRequirements`, but only if what is kept still covers every requirement of that number and every address and document in it belongs to the project; otherwise it returns `400 regulatory_compliance_required`.
 
 ```typescript
-// Check requirements for a country
-const requirements = await zavu.phoneNumbers.requirements.list({
+// Requirements for a country and type (the SDK has no per-number variant yet;
+// the purchase checks the exact number, so prefer the REST call in step 1)
+const requirements = await zavu.phoneNumbers.requirements({
   countryCode: "DE",
   type: "local",
 });
 
 for (const req of requirements.items) {
-  console.log(req.countryCode, req.phoneNumberType, req.action);
   for (const rt of req.requirementTypes) {
-    console.log(`  ${rt.name}: ${rt.type} - ${rt.description}`);
+    console.log(`${rt.id} ${rt.name}: ${rt.type} - ${rt.description}`);
   }
 }
 ```
@@ -165,31 +188,46 @@ const address = await zavu.addresses.create({
   postalCode: "10115",
   countryCode: "DE",
 });
-console.log(address.address.status); // "pending" -> "verified"
+console.log(address.address.status); // "pending"
+
+// List and inspect
+const addresses = await zavu.addresses.list();
+const one = await zavu.addresses.retrieve("addr_abc123");
+await zavu.addresses.delete("addr_abc123");
 ```
 
 ### Upload Regulatory Document
 
+Three steps: get a one-time upload URL, POST the file bytes to it, then create the document record with the `storageId` the upload returned. The API does not check the file's format or size itself; the dashboard uploader accepts JPEG, PNG or PDF up to 10MB, so stay within that. Creating the record forwards the file to the carrier for verification in the same request: if it is refused, the call returns `400` and no record is kept.
+
+A created address comes back `pending` and a created document `uploaded`, and the API does not move either one to `verified` or `rejected` afterwards. A purchase does not need them to be: approval is tracked on the number's `regulatoryStatus`, so poll that instead.
+
 ```typescript
-// 1. Get upload URL
-const upload = await zavu.documents.uploadUrl();
+// 1. Get upload URL (POST /v1/documents/upload-url)
+const upload = await zavu.regulatoryDocuments.uploadURL();
 
-// 2. Upload file to the presigned URL (use fetch/axios)
-await fetch(upload.uploadUrl, {
-  method: "PUT",
-  body: fileBuffer,
-  headers: { "Content-Type": "image/jpeg" },
+// 2. POST the file to the presigned URL; the response carries the storageId
+const uploaded = await fetch(upload.uploadUrl, {
+  method: "POST",
+  body: file, // a Blob or File
+  headers: { "Content-Type": file.type },
 });
+const { storageId } = await uploaded.json();
 
-// 3. Create document record
-const doc = await zavu.documents.create({
+// 3. Create document record (POST /v1/documents)
+const doc = await zavu.regulatoryDocuments.create({
   name: "Passport Scan",
   documentType: "passport",
-  storageId: "kg2abc123...",
-  mimeType: "image/jpeg",
-  fileSize: 102400,
+  storageId,
+  mimeType: file.type,
+  fileSize: file.size,
 });
-console.log(doc.document.status); // "pending" -> "verified"
+console.log(doc.document.status); // "uploaded"
+
+// List, inspect, delete (verified documents cannot be deleted)
+const docs = await zavu.regulatoryDocuments.list();
+const detail = await zavu.regulatoryDocuments.retrieve("doc_xyz789");
+await zavu.regulatoryDocuments.delete("doc_xyz789");
 ```
 
 ### Document Types
@@ -227,10 +265,10 @@ One-time fees are charged at submission and refunded if the carrier rejects the 
 
 ## Constraints
 
-- Phone number purchase requires a paid plan (`402 paid_plan_required` on Free); paid plans include the first US number
+- Phone number purchase requires a paid plan (`402 paid_plan_required` on Free); a paid plan includes one number, once per account (Pro: a US number)
 - Phone number name: max 100 characters
 - Phone numbers must be unassigned from senders before release
-- Regulatory addresses and documents go through verification (pending -> verified/rejected)
+- Addresses are created `pending` and documents `uploaded` and stay that way; poll the number's `regulatoryStatus`, not these
 - Country code: 2-letter ISO format (e.g., `US`, `DE`, `BR`)
 - Search results: max 50 per request
-- Some countries require verified address + document before number activation
+- A number with requirements is bought with `type` + `regulatoryRequirements` and starts `regulatoryStatus: "pending_review"`; it cannot send or call until `approved`, then assign it to a sender
