@@ -16,7 +16,7 @@ A **Sender** is the API handle you pass as `Zavu-Sender`; **accounts** (a WhatsA
 ## Webhook Types
 
 - **Sender Webhooks**: Message events (inbound, delivery status, templates) - configured per sender
-- **Project Webhooks**: Project-level events (partner invitations) - one per project
+- **Project Webhooks**: Project-level events (partner invitations) - one per project. A parent project does not receive its sub-accounts' events: configure the webhook with each sub-account's own API key (`POST /v1/invitations/webhook`).
 
 ## Available Events
 
@@ -32,7 +32,7 @@ A **Sender** is the API handle you pass as `Zavu-Sender`; **accounts** (a WhatsA
 | `message.failed` | Outbound | Message delivery failed |
 | `broadcast.status_changed` | Broadcasts | Broadcast status changed |
 | `template.status_changed` | Templates | WhatsApp template approval status changed |
-| `invitation.status_changed` | Invitations | Partner invitation status changed (pending, in_progress, completed, cancelled, failed) |
+| `invitation.status_changed` | Invitations | Partner invitation status changed (in_progress, completed, failed, cancelled, or back to pending on resend). Never sent for expiry |
 | `domain.verified` | Domains | Custom email domain passed verification |
 | `domain.failed` | Domains | Custom email domain failed verification |
 
@@ -194,7 +194,7 @@ Inline images embedded in the HTML body have `isInline: true` and a `contentId` 
 
 ## Partner Invitation Data (`invitation.status_changed`)
 
-Fires every time a partner invitation moves. `data` carries:
+Fires on every stored status change of a partner invitation, delivered to the project webhook of the project that created it. A change to the same status sends nothing. Expiry is not a stored change: a `pending` invitation past `expiresAt` reads as `expired` but emits no event. `data` carries:
 
 | Field | Description |
 |-------|-------------|
@@ -203,6 +203,7 @@ Fires every time a partner invitation moves. `data` carries:
 | `connectionType` | What the client connects: `whatsapp_waba` or `messenger`. |
 | `previousStatus` / `currentStatus` | The transition. |
 | `senderId` | Present on `completed`: the sender created in your project. |
+| `wabaAccountId` | Present on `completed` WhatsApp invitations: the WhatsApp Business Account ID. |
 | `connectedAccount` | Present on `completed`: `{ channel, id, name }` — the WhatsApp number or the Facebook Page that was linked. |
 | `failureReason` | Present on `failed`. Stable code: `fb_cancelled`, `fb_not_authorized`, `signup_abandoned`, `meta_no_pages`, `internal_error`, and others. Treat unknown codes as a generic failure. |
 
