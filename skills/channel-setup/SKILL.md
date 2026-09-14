@@ -36,8 +36,34 @@ Zavu has two objects that beginners often conflate:
 ```
 
 - An empty `channels` array means the sender cannot send anything yet (a phone number alone does not enable SMS).
+- `channels` lists only what is connected **and activated**. A connected account that is switched off is left out, because every send on it is refused.
 - Omit `Zavu-Sender` to use the project's default sender.
 - To target a specific one, pass its ID as a header inside the send params object: `'Zavu-Sender': "sender_12345"`.
+
+## Activating a connected channel
+
+Connecting an account does not switch it on: a newly connected WhatsApp account, Telegram bot, Instagram account, Messenger Page or email address starts **inactive**, and sends on it are refused until it is activated. Activation is what bills the connection (see Constraints). Do it in the dashboard (Accounts, **Activate**) or over the API, per sender and channel:
+
+```bash
+curl -X POST https://api.zavu.dev/v1/senders/sender_12345/channels/telegram/activate \
+  -H "Authorization: Bearer $ZAVU_API_KEY"
+```
+
+```json
+{
+  "sender": { "id": "sender_12345", "channels": ["telegram"] },
+  "channel": "telegram",
+  "activated": true,
+  "chargedCents": 300,
+  "monthlyCents": 300
+}
+```
+
+- `{channel}` is one of `whatsapp`, `telegram`, `instagram`, `messenger`, `email`. SMS, one-way SMS and voice are billed per message and have nothing to activate (`400`).
+- `chargedCents` is what this call took from the balance: zero when the channel was already active, its month is already paid, or the plan includes it. Calling it twice never charges twice.
+- Errors: `402 insufficient_balance`, `403 plan_limit_reached`, `409 channel_not_connected` (the sender has no account for that channel), `409 connection_not_ready` (connected but cannot carry messages yet).
+- `POST /v1/senders/{senderId}/channels/{channel}/deactivate` switches it off without disconnecting the account. The month already paid is not refunded, and re-activating within it is free.
+- Live API keys only.
 
 ## Per-channel wiring
 
