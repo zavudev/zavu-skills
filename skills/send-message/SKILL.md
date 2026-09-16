@@ -451,7 +451,7 @@ do {
 | Error Code | Meaning | Fix |
 |------------|---------|-----|
 | `whatsapp_window_closed` | 24h window not open | Use template message instead |
-| `a2p_limit_exceeded` | Free plan monthly allowance reached: WhatsApp, Telegram, Instagram and Messenger share 2,000 messages/month. Separate from the daily ceiling below, which never prevents reaching this monthly figure | Upgrade to a paid plan (no caps) or wait for the monthly reset on the 1st |
+| `a2p_limit_exceeded` | HTTP 429: the Free plan's monthly allowance is spent. WhatsApp, Telegram, Instagram and Messenger share 2,000 messages/month, **counted in both directions** — a message a contact sends you consumes a unit exactly like one you send, so a project that sent 300 and received 1,700 is at the cap. Messages sent from the WhatsApp Business App under coexistence do not count, nor do failed sends. At the cap inbound is refused too: not stored, not in the inbox, no `message.inbound` webhook. Separate from the daily ceiling below, which never prevents reaching this monthly figure | Upgrade to a paid plan (no caps) or wait for the monthly reset on the 1st |
 | `insufficient_balance` | HTTP 402: prepaid balance cannot cover the send. Email is billed from balance in 1,000-message blocks ($0.40/1k transactional, $0.80/1k marketing); SMS and voice are billed per message | Add funds from the dashboard, then retry |
 | `url_not_verified` | Message has unverified URLs | Submit URLs via `/v1/urls` first |
 | `url_shortener_blocked` | URL shortener detected | Use full destination URL |
