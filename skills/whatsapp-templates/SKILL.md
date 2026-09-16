@@ -218,14 +218,50 @@ const template = await zavu.templates.get({ templateId: "tpl_abc123" });
 console.log(template.status); // draft | pending | approved | rejected
 ```
 
+## Category Is Meta's, Not Yours
+
+The category you submit is a request. Meta decides the one that counts, and it
+can reassign it — most often `UTILITY` to `MARKETING` — either at approval or
+months later on a template that is already live. That reassignment changes what
+every send on that template costs.
+
+`template.category` reports the category **Meta currently assigns**, so read it
+rather than assuming the one you submitted is still in force:
+
+```typescript
+const template = await zavu.templates.get({ templateId: "tpl_abc123" });
+console.log(template.category); // UTILITY | MARKETING | AUTHENTICATION
+```
+
+A recategorization arrives as a `template.status_changed` webhook carrying
+`data.category`. It fires even when the approval status did not move, so a
+recategorization shows up as an event whose `previousStatus` and `currentStatus`
+are identical — branch on `category`, not only on `currentStatus`:
+
+```typescript
+if (event.type === "template.status_changed") {
+  const { templateId, currentStatus, category } = event.data;
+  if (category !== myStoredCategory(templateId)) {
+    // Meta moved the billing category. Reprice before the next send.
+  }
+}
+```
+
+To reconcile templates that drifted before you were listening, run
+`POST /v1/templates/sync` — see below.
+
 ## Sync Templates from WhatsApp
 
 A template created outside Zavu — in Meta Business Manager, or by another tool —
-does not exist in Zavu until you import it. And if a `template.status_changed`
-webhook is missed, a template stays `pending` forever. `POST /v1/templates/sync`
-fixes both: it imports Meta templates Zavu does not have (or links them to an
-existing template with the same name) and refreshes the status of the ones it
-does.
+does not exist in Zavu until you import it. If a `template.status_changed`
+webhook is missed, a template stays `pending` forever. And a template Meta
+recategorized while nothing was listening keeps reporting its old category.
+`POST /v1/templates/sync` fixes all three: it imports Meta templates Zavu does
+not have (or links them to an existing template with the same name) and
+refreshes both the status and the category of the ones it does.
+
+A template whose category changed but whose status did not is still counted in
+`updated` — that is the case worth running this for.
 
 Not generated in the SDK yet — call it over REST:
 

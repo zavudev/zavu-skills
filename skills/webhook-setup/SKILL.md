@@ -31,7 +31,7 @@ A **Sender** is the API handle you pass as `Zavu-Sender`; **accounts** (a WhatsA
 | `message.read` | Outbound | Message read by recipient |
 | `message.failed` | Outbound | Message delivery failed |
 | `broadcast.status_changed` | Broadcasts | Broadcast status changed |
-| `template.status_changed` | Templates | WhatsApp template approval status changed |
+| `template.status_changed` | Templates | WhatsApp template approval status changed, or Meta recategorized it. `data` carries `templateId`, `name`, `previousStatus`, `currentStatus`, `rejectionReason`, `category` |
 | `invitation.status_changed` | Invitations | Partner invitation status changed (in_progress, completed, failed, cancelled, or back to pending on resend). Never sent for expiry |
 | `domain.verified` | Domains | Custom email domain passed verification |
 | `domain.failed` | Domains | Custom email domain failed verification |
