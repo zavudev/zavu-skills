@@ -73,7 +73,7 @@ curl -X POST https://api.zavu.dev/v1/senders/sender_12345/channels/telegram/acti
 | Messenger Page / Instagram account | auto-created, named after the Page/@username | `channel: "messenger"` / `"instagram"` |
 | Telegram bot | attached via `POST /v1/senders/{senderId}/telegram` (bot token from @BotFather) | `channel: "telegram"` |
 | Email domain (verified) | attach with `emailAddress` on sender create/update | `channel: "email"` |
-| Nothing yet (zero-setup start) | `enableSmsOneway: true` on `POST /v1/senders` or `PATCH /v1/senders/{senderId}` — no number, no credential, active immediately; recipients cannot reply | `channel: "sms_oneway"` |
+| Nothing yet (zero-setup start) | `enableSmsOneway: true` on `POST /v1/senders` or `PATCH /v1/senders/{senderId}` — no number, no credential, active immediately; recipients cannot reply. **Sending on it needs an approved business verification (KYB)**: the channel switches on without one, but every send returns `403 kyb_required` until it is approved | `channel: "sms_oneway"` |
 | Phone number | route it to a sender (`PATCH /v1/phone-numbers/{id}` with `senderId`) — that is what turns SMS on; add `enableVoice` for calls | `channel: "sms"` / `"voice"` |
 
 One sender can carry several channels at once — that is the point: one `Zavu-Sender`, every channel.

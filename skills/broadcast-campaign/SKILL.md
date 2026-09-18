@@ -81,7 +81,7 @@ $broadcastId = $result->broadcast->id;
 |---------|-------------|
 | `smart` | Per-contact intelligent routing |
 | `sms` | SMS to all contacts |
-| `sms_oneway` | One-way SMS (no replies) |
+| `sms_oneway` | One-way SMS (no replies) — **requires approved business verification (KYB)**; refused with `403 KYB_REQUIRED` otherwise |
 | `whatsapp` | WhatsApp (requires template for non-window contacts) |
 | `telegram` | Telegram |
 | `email` | Email (needs `emailSubject`) — **recommended path for bulk email** |
@@ -243,7 +243,7 @@ await zavu.broadcasts.contacts.add({
 ## Constraints
 
 - Max 1000 contacts per `add` request (batch for larger lists)
-- Sending requires the account past the unverified floor — a payment method, a paid plan or KYC, any one of them (`403 kyc_required` otherwise) — on every channel except `whatsapp`, which is exempt because Meta's template approval stands in for it; `smart` is not exempt. KYB is not required. Drafting requires nothing
+- Sending requires the account past the unverified floor — a payment method, a paid plan or KYC, any one of them (`403 kyc_required` otherwise) — on every channel except `whatsapp`, which is exempt because Meta's template approval stands in for it; `smart` is not exempt. KYB is required on `sms_oneway` alone (`403 KYB_REQUIRED`); a `smart` broadcast is never refused for it, it just stops routing contacts to one-way SMS. Drafting requires nothing
 - Each recipient counts against the channel's daily ceiling (see the `send-message` skill); once it is reached the remaining recipients are marked `failed` with `errorCode: "DAILY_LIMIT_EXCEEDED"` and are not retried the next day
 - Content goes through review before sending, except WhatsApp on a Meta-approved template
 - Most channels also wait on a human (`pending_admin_review`) after the automated pass
