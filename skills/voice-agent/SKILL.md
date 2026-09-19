@@ -62,7 +62,7 @@ defineAgent({
   senderId: process.env.SENDER_ID!,
   name: "Kepler",
   provider: "zavu",
-  model: "openai/gpt-4o-mini",
+  model: "openai/gpt-5.6-luna",
   channels: ["voice", "whatsapp"],
   voice: {
     enabled: true,

@@ -48,7 +48,7 @@ export const support = defineAgent({
   name: "Customer Support",
   senderId: process.env.SENDER_ID!,
   provider: "zavu",
-  model: "deepseek/deepseek-v4-flash-0731",
+  model: "openai/gpt-5.6-luna",
   // `prompt` here, `systemPrompt` over the REST API. The two paths name this
   // field differently and only `prompt` compiles against @zavudev/functions.
   prompt: "You are a helpful support agent for Acme Corp. Be concise.",
@@ -285,7 +285,7 @@ agent you were told to assemble standalone used to be un-assemblable.
 ```bash
 AGENT=$(curl -s -X POST https://api.zavu.dev/v1/agents \
   -H "Authorization: Bearer $ZAVUDEV_API_KEY" \
-  -d '{"name":"Ada","provider":"zavu","model":"openai/gpt-4o-mini","systemPrompt":"..."}' \
+  -d '{"name":"Ada","provider":"zavu","model":"openai/gpt-5.6-luna","systemPrompt":"..."}' \
   | jq -r .agent.id)
 
 curl -X POST https://api.zavu.dev/v1/agents/$AGENT/tools -d '{...}'
@@ -572,7 +572,7 @@ npx zavudev agents list --json
 
 ```
 id                                name        kind   enabled  senders  model
-qd75detym58c6has4sfrye3vws8b6ygt  Atlas       voice  yes      1        openai/gpt-4o-mini
+qd75detym58c6has4sfrye3vws8b6ygt  Atlas       voice  yes      1        openai/gpt-5.6-luna
 qd7ck28evcskdc3xx4wzevtmeh8b6bcm  Pizza Desk  text   no       0        gpt-4o-mini
 ```
 

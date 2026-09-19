@@ -14,7 +14,7 @@ defineAgent({
   senderId: process.env.SENDER_ID!,
   name: "Bella",
   provider: "zavu",
-  model: "openai/gpt-4o-mini",
+  model: "openai/gpt-5.6-luna",
   prompt: "You are Bella, host at the restaurant. Be brief.",
 })
 
@@ -168,7 +168,7 @@ defineAgent({
   name: "Bella",
   provider: "zavu",              // Zavu's AI gateway (charged from project balance)
                                   // Or "openai" / "anthropic" / "google" / "mistral" with BYOK + apiKey
-  model: "openai/gpt-4o-mini",   // For "zavu" provider, prefix with the underlying provider
+  model: "openai/gpt-5.6-luna",   // For "zavu" provider, prefix with the underlying provider
   prompt: "You are Bella…",       // System prompt
   channels: ["whatsapp"],         // Optional: default ["*"] = all channels the sender supports
                                   // Listing a channel the sender does NOT have does
@@ -465,7 +465,7 @@ defineAgent({
   senderId: string,              // Required. The sender that receives inbound + dispatches the agent.
   name: string,                  // Required. Displayed in dashboard.
   provider: "zavu" | "openai" | "anthropic" | "google" | "mistral",
-  model: string,                 // For "zavu": prefix with underlying provider e.g. "openai/gpt-4o-mini"
+  model: string,                 // For "zavu": prefix with underlying provider e.g. "openai/gpt-5.6-luna"
   prompt: string,                // System prompt.
   apiKey?: string,               // Required for non-"zavu" providers.
   channels?: string[],           // Default ["*"] = whatever the sender has. See below.
@@ -494,7 +494,7 @@ defineAgent({
   senderId: process.env.SENDER_ID!,
   name: "Fermi",
   provider: "zavu",
-  model: "openai/gpt-4o-mini",      // text model
+  model: "openai/gpt-5.6-luna",      // text model
   channels: ["voice", "whatsapp"],
   voice: {
     enabled: true,
@@ -548,7 +548,7 @@ defineAgent({
   senderId: process.env.SENDER_ID!,
   name: "Ada",
   provider: "zavu",
-  model: "openai/gpt-4o-mini",
+  model: "openai/gpt-5.6-luna",
   prompt: "Answer from the store policies. If they do not cover it, say so.",
   knowledgeBase: {
     name: "Store policies",
@@ -642,7 +642,7 @@ defineAgent({
   senderIds: [process.env.SUPPORT_SENDER_ID!],
   name: "Ada",
   provider: "zavu",
-  model: "openai/gpt-4o-mini",
+  model: "openai/gpt-5.6-luna",
   prompt: "Be brief.",
 })
 ```
