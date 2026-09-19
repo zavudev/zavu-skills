@@ -185,7 +185,23 @@ console.log(`Delivered: ${progress.delivered}, Failed: ${progress.failed}, Skipp
 console.log(`Estimated completion: ${progress.estimatedCompletionAt}`);
 ```
 
-Per-contact statuses: `pending`, `queued`, `sending`, `delivered`, `failed`, `skipped` (excluded — opted out, duplicate, or invalid).
+Per-contact statuses:
+
+- `pending`, `queued`, `sending`: not handed to the provider yet.
+- `sent`: the provider accepted the message; delivery is not confirmed yet. A recipient moves on to `delivered` or `failed` when the channel reports it. Channels that never report delivery leave the recipient at `sent`.
+- `delivered`: the channel confirmed delivery to the device (a WhatsApp read receipt counts too).
+- `failed`: not delivered. A recipient can move from `sent` or `delivered` to `failed` when the provider reports a failure late.
+- `skipped`: not sent, because the recipient opted out of the channel or the broadcast was cancelled before reaching it.
+
+The progress response and the broadcast carry the `sent` count as `sent` and `sentCount`, and `sent` is a valid `status` filter on `GET /v1/broadcasts/{broadcastId}/contacts`. The SDK does not type them yet, so read them from the REST response:
+
+```bash
+curl -s https://api.zavu.dev/v1/broadcasts/$BROADCAST_ID/progress \
+  -H "Authorization: Bearer $ZAVU_API_KEY"
+# { "total": 500, "sent": 120, "delivered": 360, "failed": 20, ... }
+```
+
+Completion counts `sent` as done, so a `completed` broadcast can still have recipients waiting on a delivery receipt.
 
 ### 5. Handle Rejection (if content review fails)
 
