@@ -81,7 +81,7 @@ $broadcastId = $result->broadcast->id;
 |---------|-------------|
 | `smart` | Per-contact intelligent routing |
 | `sms` | SMS to all contacts |
-| `sms_oneway` | One-way SMS (no replies) — **requires approved business verification (KYB)**; refused with `403 KYB_REQUIRED` otherwise |
+| `sms_oneway` | One-way SMS (no replies) — needs no number and no credential |
 | `whatsapp` | WhatsApp (requires template for non-window contacts) |
 | `telegram` | Telegram |
 | `email` | Email (needs `emailSubject`) — **recommended path for bulk email** |
@@ -127,29 +127,24 @@ console.log(result.added, result.duplicates, result.invalid);
 
 ### 3. Send (triggers content review)
 
-Sending requires the account to be past the unverified floor. Any **one** of
-these clears it, and they are not equally slow:
+Sending a broadcast needs no account verification, on any channel. Identity and
+business verification raise daily ceilings; neither is a permission to
+broadcast. What stands in front of a broadcast is the content review, and it
+cannot be bypassed.
 
-| Route | What it takes | 
-| --- | --- |
-| Payment method | Add a card, or settle the deposit — about half a minute |
-| Paid plan | Any paid subscription |
-| Identity verification (KYC) | A document and a selfie, a few minutes |
+The broadcast's own text is read once — not once per recipient — before the
+automated review runs. A broadcast that is refused lands on `rejected`; one that
+is flagged waits for a person even on email, which otherwise sends as soon as
+the review passes it.
 
-Without one, the send is refused with `403 kyc_required` and the message
-"Verify your identity, add a payment method, or upgrade before sending broadcasts. You can keep editing this draft in the meantime."
-(`details.dashboardUrl` is `/kyc`). Business verification (KYB) is **not**
-required to broadcast: it gates 10DLC registration, nothing here.
+**A `whatsapp` broadcast skips review.** It can only be built on a template, and
+Meta vets the business and the content when it approves that template. What is
+enforced instead is that the template is approved — an unapproved one is refused
+with `400 template_not_approved`, and since WhatsApp passes no other review,
+that is the only gate on it.
 
-**A `whatsapp` broadcast is exempt.** It can only be built on a template, and
-Meta vets the business and the content when it approves that template, so the
-code is never returned for one. What is enforced instead is that the template is
-approved — an unapproved one is refused with `400 template_not_approved`, and
-since WhatsApp passes no other review, that is the only gate on it. `smart` is
-**not** exempt: it can route a contact to SMS or email.
-
-Creating and editing drafts needs no check at all — everything above works
-unverified, and only this call is blocked.
+Each recipient is then sent as an ordinary message, so the daily ceilings and
+the 10DLC requirement on +1 SMS destinations apply per recipient.
 
 ```typescript
 // Send immediately
@@ -259,10 +254,10 @@ await zavu.broadcasts.contacts.add({
 ## Constraints
 
 - Max 1000 contacts per `add` request (batch for larger lists)
-- Sending requires the account past the unverified floor — a payment method, a paid plan or KYC, any one of them (`403 kyc_required` otherwise) — on every channel except `whatsapp`, which is exempt because Meta's template approval stands in for it; `smart` is not exempt. KYB is required on `sms_oneway` alone (`403 KYB_REQUIRED`); a `smart` broadcast is never refused for it, it just stops routing contacts to one-way SMS. Drafting requires nothing
+- Sending needs no account verification on any channel. What gates a broadcast is the content review below; drafting requires nothing
 - Each recipient counts against the channel's daily ceiling (see the `send-message` skill); once it is reached the remaining recipients are marked `failed` with `errorCode: "DAILY_LIMIT_EXCEEDED"` and are not retried the next day
 - Content goes through review before sending, except WhatsApp on a Meta-approved template
-- Most channels also wait on a human (`pending_admin_review`) after the automated pass
+- Most channels also wait on a human (`pending_admin_review`) after the automated pass; email is the exception and sends straight through, unless the review asks for a person
 - Balance is reserved (estimated cost) when sending
 - Max 3 review retry attempts, then escalate
 - Can only update/delete broadcasts in `draft` status
