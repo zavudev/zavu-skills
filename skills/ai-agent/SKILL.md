@@ -341,12 +341,27 @@ const result = await zavu.senders.agent.flows.create({
 
 | Type | Description |
 |------|-------------|
-| `keyword` | Matches specific keywords in message |
+| `keyword` | Matches specific keywords in message (case-insensitive substring) |
+| `intent` | Message expresses the intent described in `trigger.intent`, judged for meaning rather than words |
 | `always` | Runs on every inbound message not already inside a flow |
 
-`intent` and `manual` are accepted by the API and stored on the flow, and the
-matcher has no branch for either: a flow created with one never triggers, and
-nothing reports that. Use `keyword` or `always`.
+For `intent`, write one plain sentence describing what the contact wants, in any
+language: `{ type: "intent", intent: "asks where their order is" }`. Rules that
+decide which flow starts:
+
+- A `keyword` or `always` flow with a higher `priority` wins without the intent
+  being considered. Give intent flows the higher number, or an `always` flow
+  above them means they never start.
+- An intent flow starts only on a clear match. Otherwise the next `keyword` or
+  `always` flow in priority order starts, and if there is none the agent answers.
+- At most 12 intent flows are considered per message (the 12 highest-priority).
+  An intent is cut at 300 characters.
+- If the classifier is unavailable, the message is handled as if no intent
+  matched: the contact is still answered, the flow does not start.
+- Exact tokens such as "STOP" or an order number carry no intent. Use `keyword`.
+
+`manual` is accepted by the API and stored on the flow, and nothing starts it: a
+flow created with it never triggers, and nothing reports that.
 
 A `transfer` step sends its message, marks the session transferred, and
 **silences the agent for that contact** until a person answers. Their messages
