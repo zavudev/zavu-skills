@@ -140,8 +140,8 @@ $result = $client->senders->agent->create([
 | Provider | Models | API Key Required |
 |----------|--------|-----------------|
 | `openai` | `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo` | Yes |
-| `anthropic` | `claude-3-5-sonnet`, `claude-3-haiku` | Yes |
-| `google` | `gemini-1.5-pro`, `gemini-1.5-flash` | Yes |
+| `anthropic` | `claude-3-5-sonnet-latest`, `claude-3-5-haiku-latest` | Yes |
+| `google` | `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite` | Yes |
 | `mistral` | `mistral-large`, `mistral-small` | Yes |
 | `zavu` | Zavu-hosted models | No (included) |
 

@@ -5,7 +5,7 @@ description: Foundational context for the Zavu unified messaging API. Always loa
 
 # Zavu API Context
 
-Zavu is a unified multi-channel messaging API. One API to send messages via SMS, WhatsApp, Telegram, Email, Instagram, and Voice with ML-powered intelligent routing.
+Zavu is a unified multi-channel messaging API. One API to send messages via SMS, WhatsApp, Telegram, Email, Instagram, and Voice, with automatic channel selection and fallback.
 
 ## SDK Ecosystem
 
@@ -125,7 +125,7 @@ except APIError as e:
 2. **Verification raises limits; it is not permission to send**: an account sends on every channel, to any destination, from its first minute. Identity verification, a saved payment method, a settled deposit or a paid plan raise the daily ceilings, which return `429 daily_limit_exceeded` when spent. Business verification (KYB) gates 10DLC registration, which every US and Canadian (+1) SMS destination needs (`403 ten_dlc_required`); no channel needs it to send. Every `sms`, `sms_oneway`, `email` and `voice` message is read before it is sent and can be held briefly for review (it stays `queued`) or refused (`RISK_BLOCKED`, `RISK_REJECTED`, `RISK_REVIEW_EXPIRED` on the failed message); repeated refusals suspend an account's sending (`403 sending_suspended`). See the `send-message` skill.
 3. **URL verification**: SMS/email messages containing URLs require those URLs to be pre-verified via `/v1/urls`.
 4. **URL shorteners blocked**: bit.ly, t.co, etc. are always blocked. Use full destination URLs.
-5. **Smart routing**: Channel `auto` uses ML to pick the best channel based on cost, deliverability, and contact preferences.
+5. **Channel `auto`**: picks the first channel the sender has configured that the recipient's address can receive on, in a fixed preference order. It does not consider cost. Cost-based, per-contact selection exists only on broadcasts sent with channel `smart`.
 6. **Fallback**: If WhatsApp fails, messages can automatically fall back to SMS (enabled by default).
 7. **Voice agents**: An agent can answer and place phone calls when its `voice` config has `enabled: true`. Place outbound calls via `/v1/calls` and fetch transcripts from `/v1/calls/{callId}`. Requires the Voice Agents feature and a live key. See the `ai-agent` skill.
 

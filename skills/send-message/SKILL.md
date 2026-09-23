@@ -32,8 +32,9 @@ Need one-way SMS (no inbound replies)?
   -> YES: channel = "sms_oneway"
 Need guaranteed delivery to a specific channel?
   -> YES: channel = "sms" | "whatsapp" | "telegram" | "instagram" | "messenger"
-Want cost-optimized routing?
-  -> YES: channel = "auto" (ML-powered smart routing)
+Want Zavu to pick the channel?
+  -> YES: channel = "auto" (first channel the sender has configured
+     that the recipient's address can receive; not cost-based)
 Default?
   -> channel = "sms" (or omit for default)
 ```
