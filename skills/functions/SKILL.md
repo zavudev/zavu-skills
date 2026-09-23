@@ -476,10 +476,20 @@ defineAgent({
   contextWindowMessages?: number,// Past N messages included as context. Default 10.
   sessionTimeoutMinutes?: number,// Reset conversation context after N minutes. Default 60.
   includeContactMetadata?: boolean, // Inject contact's metadata into the system prompt. Default true.
-  enabled?: boolean,             // Default true.
+  enabled?: boolean,             // Default true. Read only when the deploy creates the agent.
   voice?: VoiceConfig,           // Add to make the agent answer phone calls. See "Voice agents".
 })
 ```
+
+**Model settings survive a redeploy.** `provider`, `model`, `temperature`,
+`maxTokens`, `contextWindowMessages`, `includeContactMetadata` and
+`sessionTimeoutMinutes` can also be changed in the dashboard or with
+`PATCH /v1/agents/{agentId}`. A deploy writes one of them only when the code
+changed it since the previous deploy; otherwise the live value stays and the
+deploy output names the value the code declares. `provider` + `model` count as
+one setting. To force the code's model, change it in the code and deploy.
+Everything else the code declares (name, prompt, channels, voice) is written on
+every deploy, and `enabled` is never rewritten after creation.
 
 ## Group chats and `NO_REPLY`
 
@@ -898,7 +908,7 @@ Set memory at function creation or via dashboard. Lower memory = cheaper. Most t
 
 ### Take over a manual agent
 
-If the user already created an agent via the dashboard or `npx zavudev agents create`, declaring it in code with the same `senderId + name` will TAKE OVER that agent — Zavu marks it `managedByFunctionId` and the dashboard locks manual edits. The function source becomes source-of-truth.
+If the user already created an agent via the dashboard or `npx zavudev agents create`, declaring it in code with the same `senderId + name` will TAKE OVER that agent — Zavu marks it `managedByFunctionId` and the dashboard locks manual edits except the model settings. The function source becomes source-of-truth. Model settings the code leaves out (`temperature`, `maxTokens`, ...) keep the values the manual agent had.
 
 To go back to manual control: delete the function (`npx zavudev fn delete`) and the agent is freed.
 
