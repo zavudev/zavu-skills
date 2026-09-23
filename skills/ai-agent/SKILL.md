@@ -571,7 +571,7 @@ for (const exec of executions.items) {
 |--------|-------------|
 | `success` | Agent generated response successfully |
 | `error` | Execution failed (LLM error, tool error, etc.) |
-| `filtered` | Response blocked by safety filters |
+| `filtered` | Message dropped before the agent answered (channel or type not in its triggers, group reply cap), or the agent answered `NO_REPLY` and nothing was sent. `errorMessage` says which. |
 | `rate_limited` | Provider rate limit exceeded |
 | `balance_insufficient` | Account balance too low to process |
 
@@ -688,6 +688,17 @@ and the channels the agent listens on.
 it only to deliberately exclude a channel, and remember that adding a channel to
 the sender later does NOT add it here. Unknown strings are accepted and match
 nothing, so a typo behaves exactly like a channel you meant to exclude.
+
+## Staying silent: `NO_REPLY`
+
+When the agent's whole answer, trimmed, is exactly `NO_REPLY`, nothing is sent.
+This holds on every channel, and for a flow's `llm` step too. The execution is
+recorded with `status: "filtered"` and an `errorMessage` saying the agent chose
+not to reply; the tokens it used are still billed and counted.
+
+Use it by telling the agent in its prompt when to answer `NO_REPLY` ("If the
+message is a thank-you or does not need an answer, reply NO_REPLY"). The model
+decides; nothing else about the conversation changes.
 
 ## Constraints
 

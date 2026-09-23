@@ -470,6 +470,7 @@ defineAgent({
   apiKey?: string,               // Required for non-"zavu" providers.
   channels?: string[],           // Default ["*"] = whatever the sender has. See below.
   messageTypes?: string[],       // Default ["text"]. Filter by message type.
+  groups?: boolean,              // Answer in group chats, on channels that carry them. Default false. See below.
   temperature?: number,          // 0-2.
   maxTokens?: number,            // Cap on output tokens.
   contextWindowMessages?: number,// Past N messages included as context. Default 10.
@@ -477,6 +478,37 @@ defineAgent({
   includeContactMetadata?: boolean, // Inject contact's metadata into the system prompt. Default true.
   enabled?: boolean,             // Default true.
   voice?: VoiceConfig,           // Add to make the agent answer phone calls. See "Voice agents".
+})
+```
+
+## Group chats and `NO_REPLY`
+
+An agent answers one-to-one conversations only, unless it declares `groups: true`.
+Then it also answers group chats, on channels that carry them, and its reply goes
+to the group, not privately to the person who wrote. Group messages reach your
+webhooks and Functions either way. Removing `groups` turns it off on the next
+deploy. `groups` needs a current runtime: a function pinned to an older one
+deploys with the field ignored, so deploy it with `npx zavudev deploy --update-runtime`.
+
+In a group the agent is asked about every message, and each line reaches it as
+`Name (+number): text`, or the number alone when the author has no profile name.
+Profile names are whatever their owner typed, so a prompt that must know who is
+speaking should key on the number. Groups have no flows or handoffs, and cap the
+agent at 12 replies per group per minute, so two agents cannot loop forever.
+
+To stay quiet, the agent answers exactly `NO_REPLY` (surrounding whitespace is
+ignored). Nothing is sent, on any channel, and the execution is recorded as
+`filtered`; the tokens are still billed. In groups the agent is told this; say
+in the prompt when to use it:
+
+```ts
+defineAgent({
+  senderId: process.env.SENDER_ID!,
+  name: "Host",
+  provider: "zavu",
+  model: "openai/gpt-5.6-luna",
+  prompt: "Answer only when someone addresses you by name. Otherwise reply NO_REPLY.",
+  groups: true,
 })
 ```
 
