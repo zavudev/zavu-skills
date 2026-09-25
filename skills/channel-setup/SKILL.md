@@ -42,7 +42,7 @@ Zavu has two objects that beginners often conflate:
 
 ## Activating a connected channel
 
-Connecting an account does not switch it on: a newly connected WhatsApp account, Telegram bot, Instagram account, Messenger Page or email address starts **inactive**, and sends on it are refused until it is activated. Activation is what bills the connection (see Constraints). Do it in the dashboard (Accounts, **Activate**) or over the API, per sender and channel:
+A newly connected WhatsApp account, Telegram bot, Instagram account, Messenger Page or email address that the plan already includes is switched on by itself once it can carry messages. One that would cost money starts **inactive**, and sends on it are refused until it is activated, because activation is what bills the connection (see Constraints). Check the sender's `channels` to know which case you are in. Do it in the dashboard (Accounts, **Activate**) or over the API, per sender and channel:
 
 ```bash
 curl -X POST https://api.zavu.dev/v1/senders/sender_12345/channels/telegram/activate \
