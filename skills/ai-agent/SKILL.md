@@ -360,6 +360,28 @@ decide which flow starts:
   matched: the contact is still answered, the flow does not start.
 - Exact tokens such as "STOP" or an order number carry no intent. Use `keyword`.
 
+**When a flow says nothing.** A flow that ends on the message that started it,
+without replying, hands that message to the agent, and the agent answers it.
+Three things are silence on purpose and stay silent: a `transfer` step (even
+with an empty `message`), an `llm` step that chose not to reply, and a flow that
+already sent the contact something earlier.
+
+- To keep the agent quiet while a person handles a contact, end a flow in a
+  `transfer` step. It silences the agent for that contact until someone sends
+  them a message from the inbox or the API.
+- An `always` flow that replies claims every message, so the agent behind it
+  never answers. Use it for a bot that is only a flow, not as a gate in front of
+  an agent.
+- A `condition` cannot be the first step unless it has a `defaultGoto`: the API
+  returns `400 invalid_request`. Nothing has been collected yet, so its
+  conditions come out the same on every message.
+- `{{ }}` reads only variables collected earlier in the same flow (`collect`, or
+  a tool step's `storeResultAs`). Contact fields and metadata are not available:
+  `{{contact.plan}}` is not replaced and the condition never matches. Names take
+  no dots, so `{{lead.status}}` does not reach inside a stored object either.
+  Look the value up in a `tool` step that returns a plain value (string, number
+  or boolean) and compare that.
+
 `manual` is accepted by the API and stored on the flow, and nothing starts it: a
 flow created with it never triggers, and nothing reports that.
 
@@ -414,8 +436,8 @@ none. The tool must already exist on the agent before the flow runs.
 
 A step pointing at a tool the agent does not have ends the session as
 **abandoned** and logs the misconfiguration. It is not counted as a completed
-flow, and nothing is said to the contact: the plain agent picks the conversation
-up from their next message.
+flow. If the flow had not said anything yet, the plain agent answers that
+message; otherwise it picks the conversation up from their next one.
 
 ### Flow Operations
 
