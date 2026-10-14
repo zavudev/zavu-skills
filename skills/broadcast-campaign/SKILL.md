@@ -18,7 +18,8 @@ draft -> pending_review -> pending_admin_review -> approved -> sending -> comple
                         -> rejected_final
          approved -> scheduled -> sending -> completed
          sending -> paused (can resume)
-         (any active) -> cancelled
+         draft | pending_review | pending_admin_review | approved
+           | rejected | escalated | scheduled | sending -> cancelled
          (any) -> failed (permanent failure)
 ```
 
@@ -171,6 +172,11 @@ assuming; only WhatsApp-template broadcasts move to `sending` immediately.
 Calling send on a broadcast that is already `approved` or `scheduled` sends or
 reschedules it directly, since it has already been through review.
 
+When the balance cannot cover the estimated cost, send returns `402` with the
+shared error shape at the top level: `{ code: "insufficient_balance", message,
+details: { totalBalance, reservedBalance, availableBalance } }`. The same object
+is also repeated under `error` for older integrations.
+
 ### 4. Monitor Progress
 
 ```typescript
@@ -226,7 +232,10 @@ await zavu.broadcasts.reschedule({
   broadcastId, scheduledAt: "2024-01-16T14:00:00Z",
 });
 
-// Cancel (pending contacts skipped, queued may still deliver)
+// Cancel (pending contacts skipped, queued may still deliver). Allowed from
+// draft, pending_review, pending_admin_review, approved, rejected, escalated,
+// scheduled and sending; not from paused or a finished status. Any reserved
+// balance is released.
 await zavu.broadcasts.cancel({ broadcastId });
 
 // List contacts in broadcast

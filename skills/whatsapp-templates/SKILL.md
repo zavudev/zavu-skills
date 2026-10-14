@@ -347,7 +347,7 @@ await zavu.templates.delete({ templateId: "tpl_abc123" });
 
 ## Constraints
 
-- Template names: lowercase, underscores only (e.g., `order_confirmation`)
+- Template names: lowercase, underscores only (e.g., `order_confirmation`), unique per project: creating a second template with the same name returns `409 conflict`
 - Variables use positional format: `{{1}}`, `{{2}}`, `{{3}}`
 - Max 3 buttons per template
 - Button text: max 25 characters (not used for `request_contact_info` — WhatsApp fixes its label)

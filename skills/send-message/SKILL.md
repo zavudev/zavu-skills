@@ -416,6 +416,13 @@ await zavu.messages.send({
 });
 ```
 
+A retry with a key already used in the project sends nothing. It returns `409`
+whose body is `{ message }`: the message the first request created, in its
+current state, so read its `id` and `status` from there. The replay is answered
+before any rate, daily or balance limit, so a retry inside the one-SMS-per-
+recipient-per-minute window still gets the `409` replay, not a `429`. The SDK
+raises `409` as an error; read the replayed message from the error's body.
+
 ## Disable Automatic Fallback
 
 By default, WhatsApp messages auto-fallback to SMS on failure. To disable:
@@ -453,7 +460,7 @@ do {
 |------------|---------|-----|
 | `whatsapp_window_closed` | 24h window not open | Use template message instead |
 | `a2p_limit_exceeded` | HTTP 429: the Free plan's monthly allowance is spent. WhatsApp, Telegram, Instagram and Messenger share 2,000 messages/month, **counted in both directions** — a message a contact sends you consumes a unit exactly like one you send, so a project that sent 300 and received 1,700 is at the cap. Messages sent from the WhatsApp Business App under coexistence do not count, nor do failed sends. At the cap inbound is refused too: not stored, not in the inbox, no `message.inbound` webhook. Separate from the daily ceiling below, which never prevents reaching this monthly figure | Upgrade to a paid plan (no caps) or wait for the monthly reset on the 1st |
-| `insufficient_balance` | HTTP 402: prepaid balance cannot cover the send. Email is billed from balance in 1,000-message blocks ($0.40/1k transactional, $0.80/1k marketing); SMS and voice are billed per message | Add funds from the dashboard, then retry |
+| `insufficient_balance` | HTTP 402, `{ code, message }` at the top level like every other error (`details` carries `requiredCents` and `availableCents` when known): prepaid balance cannot cover the send. Email is billed from balance in 1,000-message blocks ($0.40/1k transactional, $0.80/1k marketing); SMS and voice are billed per message | Add funds from the dashboard, then retry |
 | `url_not_verified` | Message has unverified URLs | Submit URLs via `/v1/urls` first |
 | `url_shortener_blocked` | URL shortener detected | Use full destination URL |
 | `ten_dlc_required` | HTTP 403: the destination is a US or Canadian (+1) number and the project has no approved 10DLC campaign. A carrier requirement, not a Zavu one; registering a brand and campaign needs an approved business verification | Register a 10DLC brand and campaign in the dashboard, or send to that contact on another channel |

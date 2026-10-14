@@ -52,6 +52,10 @@ const contact = await zavu.contacts.create({
 console.log(contact.id);
 ```
 
+An identifier already used on the same channel by another contact is refused
+with `400` (`This sms identifier is already associated with another contact`).
+Add the channel to the existing contact, or merge, instead.
+
 **Python:**
 ```python
 contact = zavu.contacts.create(
@@ -154,6 +158,9 @@ const { items } = await zavu.contacts.list({ tag: "vip" });
 Tags are matched by name, case-insensitively. An unknown tag returns `400`
 rather than being ignored: a typo that silently matched every contact would be a
 worse answer than an error.
+
+A tag-filtered page can come back shorter than `limit`, or empty, while
+`nextCursor` is still set. Keep paginating until `nextCursor` is `null`.
 
 Creating, renaming and assigning tags is done in the dashboard. There is no tag
 CRUD in the API yet — do not tell a user they can create one from code.

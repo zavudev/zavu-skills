@@ -37,6 +37,7 @@ Zavu has two objects that beginners often conflate:
 
 - An empty `channels` array means the sender cannot send anything yet (a phone number alone does not enable SMS).
 - `channels` lists only what is connected **and activated**. A connected account that is switched off is left out, because every send on it is refused.
+- `phoneNumber` is absent on a sender that has none: an email-only sender, or one created with only `enableSmsOneway`. Do not assume every sender has one.
 - Omit `Zavu-Sender` to use the project's default sender.
 - To target a specific one, pass its ID as a header inside the send params object: `'Zavu-Sender': "sender_12345"`.
 

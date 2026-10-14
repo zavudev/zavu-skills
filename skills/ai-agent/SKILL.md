@@ -69,7 +69,9 @@ you enable it.
 
 ## Create Agent
 
-Each sender can have one agent:
+Each sender can have one agent. Creating a second one on a sender that already
+answers with an agent (created on it, or connected to it with
+`POST /v1/agents/{agentId}/senders`) returns `409 conflict`:
 
 ```typescript
 const result = await zavu.senders.agent.create({
@@ -169,7 +171,6 @@ The agent can also answer and place **phone calls** through Zavu's co-located vo
 
 **Requirements**
 
-- The Voice Agents feature must be enabled for your team (call endpoints return `403` otherwise).
 - The agent must have `voice.enabled: true`.
 - **The sender must have the voice channel on.** An agent with a voice on a sender that cannot take calls looks configured and never rings. The sender needs a phone number your project owns, plus `enableVoice`:
   ```bash
@@ -261,7 +262,7 @@ curl https://api.zavu.dev/v1/calls/call_abc123 \
 curl "https://api.zavu.dev/v1/calls?direction=outbound&status=completed&limit=50" \
   -H "Authorization: Bearer $ZAVU_API_KEY"
 
-# Hang up an active (ringing or in-progress) call
+# Hang up an active (queued, ringing or in-progress) call; an ended call answers 409
 curl -X POST https://api.zavu.dev/v1/calls/call_abc123/hangup \
   -H "Authorization: Bearer $ZAVU_API_KEY"
 ```
@@ -279,7 +280,10 @@ resource:
 ```
 
 Use the agent-scoped form when the agent has no sender yet, which is what
-`POST /v1/agents` creates. The sender-scoped form cannot address it, so an
+`POST /v1/agents` creates. Once a sender is connected to it with
+`POST /v1/agents/{agentId}/senders`, the sender-scoped routes reach it too.
+`POST /v1/agents` takes `apiKey` like the sender-scoped create, so a standalone
+agent can use `openai`, `anthropic`, `google` or `mistral` as well as `zavu`. The sender-scoped form cannot address it, so an
 agent you were told to assemble standalone used to be un-assemblable.
 
 ```bash
@@ -336,6 +340,10 @@ const result = await zavu.senders.agent.flows.create({
   priority: 10,
 });
 ```
+
+A flow is created **disabled** unless the request sends `enabled: true`. On the
+list endpoints for flows and tools, `?enabled=` accepts only `true` or `false`;
+anything else is `400`.
 
 ### Trigger Types
 
@@ -575,6 +583,9 @@ const stats = await zavu.senders.agent.stats({ senderId: "snd_abc123" });
 console.log(`Invocations: ${stats.totalInvocations}`);
 console.log(`Tokens: ${stats.totalTokensUsed}`);
 console.log(`Cost: $${stats.totalCost}`);
+// successCount, errorCount and avgLatencyMs cover the 100 most recent
+// executions, `filtered` ones excluded. avgLatencyMs is null when there are none.
+console.log(stats.successCount, stats.errorCount, stats.avgLatencyMs);
 
 // List executions
 const executions = await zavu.senders.agent.executions.list({
@@ -624,9 +635,11 @@ Over REST:
 | `DELETE /v1/agents/{agentId}` | Delete |
 | `POST /v1/agents/{agentId}/test` | Run it, return the reply, deliver nothing |
 
-The older `/v1/senders/{senderId}/agent` routes still work, but they resolve a
-sender to exactly ONE agent — so they cannot reach an agent that has no sender,
-or the second agent on a shared one.
+The older `/v1/senders/{senderId}/agent` routes still work. They resolve a
+sender to the ONE agent that answers on it: the agent created on it, else the
+agent connected to it with `POST /v1/agents/{agentId}/senders`. They cannot
+reach an agent that has no sender. `GET /v1/senders/{senderId}/agent` on a
+sender with no agent returns `404`.
 
 To exercise one tool rather than the whole agent:
 
@@ -724,10 +737,12 @@ decides; nothing else about the conversation changes.
 
 ## Constraints
 
-- **One agent per sender.** Writes do not enforce it — a second agent can be
-  created on a sender — but every read resolves a sender to exactly ONE agent,
-  so the extra one answers nothing and is invisible to `agents get`. `zavu
-  deploy` warns when it happens.
+- **One agent per sender.** `POST /v1/senders/{senderId}/agent` returns
+  `409 conflict` when the sender already answers with an agent, and connecting
+  a sender that is in use returns `400`. Every read resolves a sender to exactly
+  ONE agent.
+- **Tool names are unique per agent.** Creating a second tool with the same
+  name returns `409 conflict`.
 - System prompt: max 10,000 characters
 - Context window: 1-50 messages
 - Temperature: 0-2

@@ -570,8 +570,7 @@ voice: {
 }
 ```
 
-Voice requires the **Voice Agents** feature enabled for your team and a phone
-number assigned to the sender. An **out-of-range** value makes
+Voice requires a phone number assigned to the sender, with the voice channel on. An **out-of-range** value makes
 `npx zavudev deploy` warn and ship the agent as text-only rather than fail — fix the
 value and redeploy.
 
@@ -656,8 +655,8 @@ defineFlow({
 })
 ```
 
-Only `keyword` and `always` triggers are matched by the engine. Step shapes are
-in the `ai-agent` skill.
+`keyword`, `intent` and `always` triggers are matched by the engine; `manual` is
+accepted but nothing starts it. Step shapes are in the `ai-agent` skill.
 
 Four things specific to declaring a flow in code:
 
@@ -1016,7 +1015,7 @@ The auto-provisioned key has `messages:send`, `messages:read`, `contacts:read` s
 
 ## Constraints
 
-- Slug: lowercase alphanumeric + hyphens, max 50 chars, unique per project.
+- Slug: lowercase alphanumeric + hyphens, max 50 chars, unique per project (a duplicate returns `409 conflict`).
 - Source bundle: ≤ 900 KB compressed.
 - Total env size: 4 KB across all secrets.
 - Secret key format: `[A-Z_][A-Z0-9_]*`. Reserved prefixes: `AWS_`, `LAMBDA_`, `_HANDLER`, `_X_AMZN`.
