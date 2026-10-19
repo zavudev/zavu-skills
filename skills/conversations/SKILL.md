@@ -17,7 +17,7 @@ One thread with one contact, spanning every channel. A contact who writes on Wha
 
 | Field | Meaning |
 |-------|---------|
-| `id` | Thread ID. Same value as `conversationId` on messages and webhooks. |
+| `id` | Thread ID. Same value as `conversationId` on messages, `conversation.new` and email `message.inbound`. |
 | `contactIdentifier` | The key the thread is filed under. **Not always a phone number** — see below. |
 | `contactId` | The contact, when resolved. Absent on group threads. |
 | `channels` | Every channel this thread has carried. |
@@ -25,11 +25,10 @@ One thread with one contact, spanning every channel. A contact who writes on Wha
 | `senderId` | Sender that last handled the thread. Pass it back as `Zavu-Sender` when replying. |
 | `unreadCount` | Inbound messages not yet marked read. |
 | `whatsapp` | `bsuid` + `username`, when the contact adopted a WhatsApp username. |
-| `group` | Present on group chats: `id`, `subject`, `participantCount`. |
 
 ### contactIdentifier is not a phone number
 
-It holds whichever identifier keys the thread: an E.164 phone, a WhatsApp BSUID (`US.13491208655302741918`), a numeric chat ID (Telegram/Instagram/Messenger), or a group JID (`<id>@g.us`). Parsing it as a phone number breaks on every non-SMS channel. Use `channels` and `group` to decide how to render it.
+It holds whichever identifier keys the thread: an E.164 phone, a WhatsApp BSUID (`US.13491208655302741918`), or a numeric chat ID (Telegram/Instagram/Messenger). Parsing it as a phone number breaks on every non-SMS channel. Use `channels` to decide how to render it.
 
 ## Endpoints
 
@@ -66,7 +65,7 @@ const { items, nextCursor } = await res.json();
 
 ### Search threads
 
-`search` finds a thread by **who it is with**: phone number, email address, WhatsApp group subject, WhatsApp username, or BSUID. Phone formatting does not matter — `+1 (555) 123-4567` and `15551234567` both match the same thread.
+`search` finds a thread by **who it is with**: phone number, email address, WhatsApp username, or BSUID. Phone formatting does not matter — `+1 (555) 123-4567` and `15551234567` both match the same thread.
 
 ```bash
 curl "https://api.zavu.dev/v1/conversations?search=%2B56912345678" \
@@ -172,12 +171,12 @@ Two constraints still apply when replying:
 
 ## Getting a conversation from a webhook
 
-`message.inbound` carries `data.conversationId`. It is `null` while the thread row is still being created — the first inbound message of a brand-new thread, or several near-simultaneous first messages from an unknown address.
+`message.inbound` carries `data.conversationId` on **email** messages only, and it is `null` on the first email of a brand-new thread. On SMS, WhatsApp, Telegram, Instagram and Messenger the field is absent.
 
 Recovery order:
-1. Use `data.conversationId` when present.
-2. Otherwise take it from the `conversation.new` event, which carries the id.
-3. Otherwise `GET /v1/messages/{messageId}`, whose `conversationId` is always populated.
+1. Use `data.conversationId` when present (email).
+2. Otherwise `GET /v1/messages/{messageId}`, whose `conversationId` is always populated.
+3. For a brand-new contact, the `conversation.new` event also carries the id.
 
 Do not fall back to listing conversations and matching on the phone number: on a busy project the thread may not be at the top yet, and the identifier may be a BSUID rather than the number you expected.
 
@@ -191,9 +190,9 @@ For live updates, subscribe a webhook to `message.inbound`, `message.sent`, `mes
 
 | Trap | Reality |
 |------|---------|
-| Treating `contactIdentifier` as a phone | It can be a BSUID, chat ID, or group JID. |
+| Treating `contactIdentifier` as a phone | It can be a BSUID or a chat ID. |
 | Building a cursor | Cursors are opaque; only echo `nextCursor` back. |
 | Stopping pagination on a short page | The `channel` filter shrinks pages. Stop on `nextCursor === null`. |
 | Expecting `contactId` everywhere | Absent on group threads and unresolved contacts. |
 | Expecting `/read` to notify the contact | It only clears your own counter. |
-| Assuming `conversationId` is always on `message.inbound` | It is `null` on a brand-new thread. Recover it as described above. |
+| Assuming `conversationId` is always on `message.inbound` | Only email carries it, and it is `null` on a brand-new thread. Recover it as described above. |

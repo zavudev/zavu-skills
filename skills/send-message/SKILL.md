@@ -421,7 +421,23 @@ whose body is `{ message }`: the message the first request created, in its
 current state, so read its `id` and `status` from there. The replay is answered
 before any rate, daily or balance limit, so a retry inside the one-SMS-per-
 recipient-per-minute window still gets the `409` replay, not a `429`. The SDK
-raises `409` as an error; read the replayed message from the error's body.
+raises that `409` as a `ConflictError` (it does not retry it); the replayed
+message is on the error's `error` property:
+
+```typescript
+import Zavudev from "@zavudev/sdk";
+
+try {
+  await zavu.messages.send({ to: "+14155551234", text: "Payment confirmed", idempotencyKey: key });
+} catch (err) {
+  if (err instanceof Zavudev.ConflictError) {
+    const { message } = err.error as { message: { id: string; status: string } };
+    // Already sent: message.id and message.status describe the first attempt.
+  } else {
+    throw err;
+  }
+}
+```
 
 ## Disable Automatic Fallback
 
@@ -461,13 +477,14 @@ do {
 | `whatsapp_window_closed` | 24h window not open | Use template message instead |
 | `a2p_limit_exceeded` | HTTP 429: the Free plan's monthly allowance is spent. WhatsApp, Telegram, Instagram and Messenger share 2,000 messages/month, **counted in both directions** — a message a contact sends you consumes a unit exactly like one you send, so a project that sent 300 and received 1,700 is at the cap. Messages sent from the WhatsApp Business App under coexistence do not count, nor do failed sends. At the cap inbound is refused too: not stored, not in the inbox, no `message.inbound` webhook. Separate from the daily ceiling below, which never prevents reaching this monthly figure | Upgrade to a paid plan (no caps) or wait for the monthly reset on the 1st |
 | `insufficient_balance` | HTTP 402, `{ code, message }` at the top level like every other error (`details` carries `requiredCents` and `availableCents` when known): prepaid balance cannot cover the send. Email is billed from balance in 1,000-message blocks ($0.40/1k transactional, $0.80/1k marketing); SMS and voice are billed per message | Add funds from the dashboard, then retry |
+| `sms_compliance_blocked` | HTTP 422, SMS and one-way SMS only: the content check refused the text (`details.complianceFailures`, `details.requiredFixes`, and a `suggestedCompliantVersion` when there is one), or the check could not run and the message says so. Nothing is sent or charged. One-time codes always pass | Apply `requiredFixes` (often: name your business, say why you are writing) and send again; if the check could not run, retry in a few minutes |
 | `url_not_verified` | Message has unverified URLs | Submit URLs via `/v1/urls` first |
 | `url_shortener_blocked` | URL shortener detected | Use full destination URL |
 | `ten_dlc_required` | HTTP 403: the destination is a US or Canadian (+1) number and the project has no approved 10DLC campaign. A carrier requirement, not a Zavu one; registering a brand and campaign needs an approved business verification | Register a 10DLC brand and campaign in the dashboard, or send to that contact on another channel |
 | `sending_suspended` | HTTP 403: this account's sending was suspended after Zavu's automated review refused several of its messages. Every channel is refused while it lasts, and `details.dashboardUrl` points at support. Same code on `POST /v1/calls` | Contact support; waiting does not clear it |
 | `RISK_BLOCKED` / `RISK_REJECTED` / `RISK_REVIEW_EXPIRED` | On the failed message (async), not on the response: the automated review refused the message outright, a reviewer did not approve a held one, or the review window closed first. A failed SMS is not charged | Rewrite the message, or contact support with the message ID if the refusal looks wrong |
 | `SENDING_SUSPENDED` | On the failed message (async): the account's sending was suspended while this message was queued | Contact support |
-| `daily_limit_exceeded` | HTTP 429: the channel group's daily ceiling, `details.limit` says which. Verified nothing: 25/day across `sms` + `sms_oneway`, 5/day `voice`, 100/day across WhatsApp + Telegram + Instagram + Messenger. Past that floor: 200/day SMS, or 10,000 once identity or business verification is approved; on Free, 50/day voice and 250/day conversational. Paid plans have no voice or conversational ceiling. Email: the plan quota (100/day on Free). Counts reset at 00:00 UTC | Wait for the reset, or verify identity / add a payment method to raise it (upgrade the plan for email) |
+| `daily_limit_exceeded` | HTTP 429: the channel group's daily ceiling, `details.limit` says which. Verified nothing: 25/day across `sms` + `sms_oneway`, 5/day `voice`, 100/day across WhatsApp + Telegram + Instagram + Messenger. Past that floor: 200/day SMS, or 10,000 once identity or business verification is approved; on Free, 50/day voice and 250/day conversational. Paid plans have no voice or conversational ceiling. Email: the plan quota (100/day on Free). Counts reset at 00:00 UTC. Separately, every plan has a rolling email ceiling by account age (1,000/24 h and 200/h for the first 7 days, 10,000 and 1,000/h until day 30, then 50,000 and 5,000/h): past it the message is accepted and fails with `EMAIL_RATE_LIMIT_DAILY` or `EMAIL_RATE_LIMIT_HOURLY`, not with this 429 | Wait for the reset, or verify identity / add a payment method to raise it (upgrade the plan for email) |
 | `EMAIL_INVALID_RECIPIENT` | Malformed email address (async, on the failed message) | Fix the address; pre-check lists with `POST /v1/introspect/email` |
 | `EMAIL_DOMAIN_NOT_FOUND` | Recipient domain has no MX or A records (async) | Remove the address; the send would hard bounce |
 | `EMAIL_RECIPIENT_SUPPRESSED` | Address bounced or complained before (async) | Remove it from your lists |

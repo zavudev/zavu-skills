@@ -92,7 +92,7 @@ For `message.inbound`, `data` carries the message. On inbound, `to` is your own 
 | Field | Description |
 |-------|-------------|
 | `messageId` | Zavu message ID. |
-| `conversationId` | Inbox thread id. `null` while the thread is still being created (use `conversation.new`'s id, or `GET /v1/messages/{id}`). See "Deep-linking to the inbox" below. |
+| `conversationId` | Inbox thread id. **Email only**: absent on SMS, WhatsApp, Telegram, Instagram and Messenger, and `null` on the first email of a brand-new thread. Get it from `GET /v1/messages/{id}` otherwise. See "Deep-linking to the inbox" below. |
 | `from` | Sender: the contact for a 1:1, or the participant for a group message. Usually an E.164 phone number, but for WhatsApp contacts who adopted a username and hid their number it is their business-scoped user ID (BSUID, e.g. `US.13491208655302741918`) — treat it as opaque and pass it back as `to` when replying. |
 | `to` | Your own number (the message's destination). |
 | `channel` | Delivery channel (`sms`, `whatsapp`, `telegram`, `email`, `instagram`, `messenger`, `voice`). |
@@ -100,10 +100,30 @@ For `message.inbound`, `data` carries the message. On inbound, `to` is your own 
 | `text` | Text body or media caption, when present. |
 | `providerTimestamp` | The provider's original receive time (Unix ms) for WhatsApp, Telegram, Instagram, Messenger; `null` for SMS and email. Compare with the top-level `timestamp` to detect delayed deliveries. |
 | `referral` | Click-to-WhatsApp ad attribution. WhatsApp only, and only on the first message of an ad-originated thread. See "Click-to-WhatsApp attribution" below. |
+| `telegramChatId` | Telegram only: the chat ID to send back to, without a prefix. |
+| `instagramSenderId` | Instagram only: the sender's ID to send back to, without a prefix. |
+| `messengerSenderId` | Messenger only: the sender's ID to send back to, without a prefix. |
+
+### Replying from the same sender
+
+Send the reply with `POST /v1/messages`, passing the payload's top-level `senderId` as the `Zavu-Sender` header so it leaves from the sender the contact wrote to. What goes in `to` depends on the channel:
+
+- SMS, WhatsApp and email: `data.from`.
+- Telegram: `data.telegramChatId`. Instagram: `data.instagramSenderId`. Messenger: `data.messengerSenderId`. On these channels `data.from` carries a `telegram:` / `instagram:` / `messenger:` prefix that `to` does not accept, and the send is refused with `400`.
+
+```typescript
+const { senderId, data } = event;
+const to =
+  data.channel === "telegram" ? data.telegramChatId :
+  data.channel === "instagram" ? data.instagramSenderId :
+  data.channel === "messenger" ? data.messengerSenderId :
+  data.from;
+await zavu.messages.send({ to, channel: data.channel, text: "Thanks, we got it.", "Zavu-Sender": senderId });
+```
 
 ### Deep-linking to the inbox
 
-Both `message.inbound` and `conversation.new` carry a `conversationId` in `data` — the id of the inbox thread. Build a direct link so your team can open the conversation in the Zavu dashboard:
+`conversation.new` carries a `conversationId` in `data` — the id of the inbox thread — and so does `message.inbound` on email. Build a direct link so your team can open the conversation in the Zavu dashboard:
 
 ```
 https://dashboard.zavu.dev/{locale}/inbox?conv={conversationId}
@@ -111,7 +131,7 @@ https://dashboard.zavu.dev/{locale}/inbox?conv={conversationId}
 
 `{locale}` is the dashboard UI language (e.g. `en`, `es`).
 
-On `message.inbound`, `conversationId` is `null` while the conversation row is still being created — on the first message of a brand-new thread, and, if several messages from a never-seen address arrive near-simultaneously, on each of those (only one `conversation.new` is emitted). Recover the id from `conversation.new`, or fetch it any time from `GET /v1/messages/{messageId}`, whose `conversationId` is always populated.
+On `message.inbound`, only email messages carry `conversationId`, and it is `null` on the first email of a brand-new thread. On SMS, WhatsApp, Telegram, Instagram and Messenger the field is absent. In every case, fetch it from `GET /v1/messages/{messageId}`, whose `conversationId` is always populated, or take it from `conversation.new` for a new contact.
 
 ### Reply / quote context
 

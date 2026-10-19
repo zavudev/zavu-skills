@@ -165,6 +165,8 @@ await zavu.senders.agent.update({
 });
 ```
 
+**Switching provider needs a key for the new one.** A stored provider key belongs to one provider. An update that moves `provider` to `openai`, `anthropic`, `google` or `mistral` while the agent holds a key for a different provider is refused with `400 invalid_request` ("This API key is for anthropic, but the agent uses openai."), instead of saving an agent that would fail on its first message. Send `provider` and `apiKey` in the same request; both `PATCH /v1/senders/{senderId}/agent` and `PATCH /v1/agents/{agentId}` accept `apiKey`. Moving to `zavu` needs no key.
+
 ## Voice
 
 The agent can also answer and place **phone calls** through Zavu's co-located voice network (speech recognition, the agent's LLM, and speech synthesis, with real-time interruption handling). The `systemPrompt`, tools, and knowledge bases all apply on a call — voice just adds a spoken channel on top. For a code-first voice agent declared in TypeScript, use the `functions` skill instead.
@@ -686,12 +688,22 @@ npx zavudev agents test --agent <agentId> --message "where is order ORD-001?"
 
 Runs the real prompt, model and knowledge base and prints what the agent
 *would* reply, plus tokens, latency and how many knowledge chunks were used.
-Nothing is delivered, nothing is charged, no execution is logged — safe to run
-in a loop while iterating on a prompt.
+Nothing is delivered and no execution is logged.
+
+**A test run is billed like a live reply.** On an agent with the `zavu`
+provider it is charged to your balance at the same per-token price (the
+response's `cost`), and refused with `402 insufficient_balance` at a balance of
+zero. On a bring-your-own-key agent it costs your provider. Runs are rate
+limited per project (`429`). Test-mode keys are billed the same way, and
+`executeTools` with one still reaches your real handlers and writes real memory.
+
+The model is offered the agent's tools but none runs: if it picks one, the
+reply stops there and `plannedToolCalls` says which, with what arguments. Pass
+`executeTools` to run them for real — that reaches your handlers.
 
 It also warns about what a dry run cannot prove: an agent that is disabled,
-tools its channels will never call, and contact metadata that will exist live
-but not here. Treat those warnings as part of the result.
+a sender without the channels the agent triggers on, and contact metadata that
+will exist live but not here. Treat those warnings as part of the result.
 
 Multi-turn and isolating the prompt from retrieval:
 

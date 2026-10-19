@@ -13,8 +13,8 @@ npx skills add zavudev/zavu-skills
 For direct API execution from Claude Code:
 
 ```bash
-claude mcp add --transport stdio zavudev_sdk_api \
-  --env ZAVUDEV_API_KEY="your_key" -- npx -y @zavudev/sdk-mcp
+claude mcp add zavudev --scope user \
+  -e ZAVUDEV_API_KEY="your_key" -- npx -y @zavudev/sdk-mcp
 ```
 
 ## Skills
@@ -24,6 +24,7 @@ claude mcp add --transport stdio zavudev_sdk_api \
 | `zavu-rules` | Always loaded | SDK ecosystem, CLI tooling, auth, conventions, business rules |
 | `functions` | Workflow + Reference | Zavu Functions: serverless TypeScript with `defineAgent` / `defineTool`, `npx zavudev deploy`, debugging |
 | `send-message` | Workflow | Channel selection decision tree + all message types |
+| `api-v2` | Reference + Workflow | API v2 over HTTP: addresses instead of senders, connect channels, reply by conversation, one project webhook, flat errors |
 | `broadcast-campaign` | Workflow | Full broadcast lifecycle: create, review, send, monitor |
 | `conversations` | Reference | Read the inbox: list threads, fetch messages, mark read, reply from the right sender |
 | `webhook-setup` | Reference + Code | Webhook config, signature verification, event handling |

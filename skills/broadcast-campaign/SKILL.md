@@ -84,7 +84,7 @@ $broadcastId = $result->broadcast->id;
 | `sms` | SMS to all contacts |
 | `sms_oneway` | One-way SMS (no replies) — needs no number and no credential |
 | `whatsapp` | WhatsApp (requires template for non-window contacts) |
-| `telegram` | Telegram |
+| `telegram` | Telegram. Recipients are numeric chat IDs (`838360395` or `telegram:838360395`) of people who already wrote to your bot; a bot cannot start a chat, and phone numbers are rejected |
 | `email` | Email (needs `emailSubject`) — **recommended path for bulk email** |
 
 ### Message Types
@@ -101,6 +101,8 @@ $broadcastId = $result->broadcast->id;
 ### Email Broadcast (with HTML body)
 
 For bulk email campaigns, use `channel: "email"` with an HTML body. This is the recommended way to send mass email through Zavu.
+
+Email broadcasts need a paid plan. On Free, sending or scheduling one returns `402` with `code: "paid_plan_required"` (drafts can still be created). A `smart` broadcast still sends, but its email recipients fail with `errorCode: "PAID_PLAN_REQUIRED"`. Transactional email through `POST /v1/messages` works on every plan.
 
 ```typescript
 const result = await zavu.broadcasts.create({
@@ -146,6 +148,12 @@ that is the only gate on it.
 
 Each recipient is then sent as an ordinary message, so the daily ceilings and
 the 10DLC requirement on +1 SMS destinations apply per recipient.
+
+The team owner gets an email when the review answers: approved (sending,
+scheduled, or ready to send), or not approved, with the reason and what to do
+next. A broadcast whose sender was deleted after it was created is refused with
+`400 sender_not_found` before any balance is reserved; create a new broadcast
+with another sender.
 
 ```typescript
 // Send immediately
@@ -264,6 +272,7 @@ await zavu.broadcasts.contacts.add({
 
 - Max 1000 contacts per `add` request (batch for larger lists)
 - Sending needs no account verification on any channel. What gates a broadcast is the content review below; drafting requires nothing
+- Email broadcasts need a paid plan: on Free, send returns `402 paid_plan_required`
 - Each recipient counts against the channel's daily ceiling (see the `send-message` skill); once it is reached the remaining recipients are marked `failed` with `errorCode: "DAILY_LIMIT_EXCEEDED"` and are not retried the next day
 - Content goes through review before sending, except WhatsApp on a Meta-approved template
 - Most channels also wait on a human (`pending_admin_review`) after the automated pass; email is the exception and sends straight through, unless the review asks for a person

@@ -259,7 +259,9 @@ Registration charges The Campaign Registry's own fees from your balance, passed 
 | Campaign, standard use cases (`POST /v1/10dlc/campaigns/{campaignId}/submit`) | $15 | $10 while active |
 | Campaign, `LOW_VOLUME` use case | $2 | $2 while active |
 
-One-time fees are charged at submission and refunded if the carrier rejects the registration. The monthly campaign fee starts once the campaign is approved.
+One-time fees are charged at submission and refunded, once, if the carrier rejects the registration or it never reaches the carrier. The monthly campaign fee is the published one above, charged from the first day the campaign is approved.
+
+Statuses move on their own: pending campaigns are re-read from the carrier every 30 minutes, so polling `GET /v1/10dlc/campaigns/{campaignId}` is enough. Phone number assignments are `pending`, `active` or `failed` (the carrier refused the number; it can be assigned again); a removed assignment is no longer listed. Brand `ein` must be 9 digits (`XX-XXXXXXX`) and `website` a full URL, or the request is refused with `400`.
 
 10DLC registration is managed through the Zavu dashboard. Contact support for high-volume US messaging requirements.
 

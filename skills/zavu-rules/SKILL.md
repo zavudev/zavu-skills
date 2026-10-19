@@ -122,8 +122,8 @@ except APIError as e:
 ## Key Business Rules
 
 1. **WhatsApp 24h window**: Free-form messages require an open conversation window (user messaged you in last 24h). Use template messages to initiate conversations outside the window.
-2. **Verification raises limits; it is not permission to send**: an account sends on every channel, to any destination, from its first minute. Identity verification, a saved payment method, a settled deposit or a paid plan raise the daily ceilings, which return `429 daily_limit_exceeded` when spent. Business verification (KYB) gates 10DLC registration, which every US and Canadian (+1) SMS destination needs (`403 ten_dlc_required`); no channel needs it to send. Every `sms`, `sms_oneway`, `email` and `voice` message is read before it is sent and can be held briefly for review (it stays `queued`) or refused (`RISK_BLOCKED`, `RISK_REJECTED`, `RISK_REVIEW_EXPIRED` on the failed message); repeated refusals suspend an account's sending (`403 sending_suspended`). See the `send-message` skill.
-3. **URL verification**: SMS/email messages containing URLs require those URLs to be pre-verified via `/v1/urls`.
+2. **Verification raises limits; it is not permission to send**: an account sends on every channel, to any destination, from its first minute. Identity verification, a saved payment method, a settled deposit or a paid plan raise the daily ceilings, which return `429 daily_limit_exceeded` when spent. Business verification (KYB) gates 10DLC registration, which every US and Canadian (+1) SMS destination needs (`403 ten_dlc_required`); no channel needs it to send, `sms_oneway` included. Every `sms`, `sms_oneway`, `email` and `voice` message is read before it is sent and can be held briefly for review (it stays `queued`) or refused (`RISK_BLOCKED`, `RISK_REJECTED`, `RISK_REVIEW_EXPIRED` on the failed message); repeated refusals suspend an account's sending (`403 sending_suspended`). See the `send-message` skill.
+3. **URL verification**: SMS, one-way SMS and voice messages containing URLs require those URLs to be verified (pre-verify with `/v1/urls`; an unknown URL holds the message in `pending_url_verification` while it is checked). Email, WhatsApp, Telegram, Instagram and Messenger messages are not checked.
 4. **URL shorteners blocked**: bit.ly, t.co, etc. are always blocked. Use full destination URLs.
 5. **Channel `auto`**: picks the first channel the sender has configured that the recipient's address can receive on, in a fixed preference order. It does not consider cost. Cost-based, per-contact selection exists only on broadcasts sent with channel `smart`.
 6. **Fallback**: If WhatsApp fails, messages can automatically fall back to SMS (enabled by default).
@@ -134,8 +134,8 @@ except APIError as e:
 For direct API execution from AI assistants:
 
 ```bash
-claude mcp add --transport stdio zavudev_sdk_api \
-  --env ZAVUDEV_API_KEY=$ZAVUDEV_API_KEY -- npx -y @zavudev/sdk-mcp
+claude mcp add zavudev --scope user \
+  -e ZAVUDEV_API_KEY=$ZAVUDEV_API_KEY -- npx -y @zavudev/sdk-mcp
 ```
 
 Tools available: `search_docs` (search API docs), `execute` (run TypeScript against authenticated client).
