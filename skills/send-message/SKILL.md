@@ -439,18 +439,24 @@ try {
 }
 ```
 
-## Disable Automatic Fallback
+## Automatic Fallback to SMS
 
-By default, WhatsApp messages auto-fallback to SMS on failure. To disable:
+A failed WhatsApp text or template message is retried over SMS when the sender also has SMS. Whether that happens depends on how the channel was chosen:
+
+- `channel` omitted or `"auto"`: fallback is **on**. Turn it off with `fallbackEnabled: false`.
+- `channel` set explicitly (e.g. `"whatsapp"`): fallback is **off**. Turn it on with `fallbackEnabled: true`.
 
 ```typescript
+// Explicit WhatsApp, with the SMS safety net
 await zavu.messages.send({
   to: "+14155551234",
   channel: "whatsapp",
-  text: "WhatsApp only — no SMS fallback",
-  fallbackEnabled: false,
+  text: "Your order has shipped.",
+  fallbackEnabled: true,
 });
 ```
+
+Media, buttons, lists and other WhatsApp-only types never fall back.
 
 ## Get Status & List Messages
 

@@ -126,7 +126,7 @@ except APIError as e:
 3. **URL verification**: SMS, one-way SMS and voice messages containing URLs require those URLs to be verified (pre-verify with `/v1/urls`; an unknown URL holds the message in `pending_url_verification` while it is checked). Email, WhatsApp, Telegram, Instagram and Messenger messages are not checked.
 4. **URL shorteners blocked**: bit.ly, t.co, etc. are always blocked. Use full destination URLs.
 5. **Channel `auto`**: picks the first channel the sender has configured that the recipient's address can receive on, in a fixed preference order. It does not consider cost. Cost-based, per-contact selection exists only on broadcasts sent with channel `smart`.
-6. **Fallback**: If WhatsApp fails, messages can automatically fall back to SMS (enabled by default).
+6. **Fallback**: If WhatsApp fails, text and template messages can fall back to SMS. On by default when Zavu picks the channel (`channel` omitted or `auto`); off when `channel` is set explicitly, unless `fallbackEnabled: true`.
 7. **Voice agents**: An agent can answer and place phone calls when its `voice` config has `enabled: true`. Place outbound calls via `/v1/calls` and fetch transcripts from `/v1/calls/{callId}`. Requires a live key. See the `ai-agent` skill.
 
 ## MCP Server
