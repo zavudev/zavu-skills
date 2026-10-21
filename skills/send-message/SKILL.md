@@ -285,7 +285,7 @@ await zavu.messages.send({
 
 ### Template Message
 
-`templateVariables` fill body placeholders (keyed by position `1`, `2`, ... for positional templates, or by name for named ones — do not mix). `templateButtonVariables` fill dynamic URL/OTP button placeholders (keyed by button index `0`, `1`, `2`). `templateHeaderVariables` set a text-header variable (keyed by `1`).
+`templateVariables` fill body placeholders (keyed by position `1`, `2`, ... for positional templates, or by name for named ones — do not mix). `templateButtonVariables` fill dynamic URL/OTP button placeholders (keyed by button index `0`, `1`, `2`). `templateHeaderVariables` set a text-header variable (keyed by `1`). On WhatsApp, body and header values may not contain line breaks, tabs or more than 4 consecutive spaces: the send is rejected with `400 invalid_request` naming the value in `details.field`.
 
 ```typescript
 await zavu.messages.send({

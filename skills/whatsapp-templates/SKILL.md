@@ -349,6 +349,7 @@ await zavu.templates.delete({ templateId: "tpl_abc123" });
 
 - Template names: lowercase, underscores only (e.g., `order_confirmation`), unique per project: creating a second template with the same name returns `409 conflict`
 - Variables use positional format: `{{1}}`, `{{2}}`, `{{3}}`
+- A WhatsApp variable value may not contain line breaks, tabs or more than 4 consecutive spaces. Meta refuses those at delivery, so Zavu rejects the send with `400 invalid_request` and names the value in `details.field`. Replace them (e.g. with ` · `) before sending; SMS and Telegram templates accept them
 - Max 3 buttons per template
 - Button text: max 25 characters (not used for `request_contact_info` — WhatsApp fixes its label)
 - OTP `ONE_TAP` requires Android `packageName` and `signatureHash`
