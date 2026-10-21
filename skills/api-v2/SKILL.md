@@ -1,6 +1,6 @@
 ---
 name: api-v2
-description: Use Zavu API v2 over HTTP — send from an address instead of a sender, connect channels, reply by conversationId, configure the one project webhook, and act on flat errors and details.connect.
+description: Use Zavu API v2 from the TypeScript SDK (client.v2) or over HTTP — send from an address instead of a sender, connect channels, reply by conversationId, configure the one project webhook, and act on flat errors and details.connect.
 ---
 
 # Zavu API v2
@@ -11,7 +11,37 @@ Use this skill when code calls `https://api.zavu.dev/v2`, or when the user asks 
 
 v1 is not deprecated. It keeps working unchanged, and v1 and v2 calls can be mixed in one codebase with the same API key and the same IDs. Use the other skills for v1.
 
-**The SDKs (`@zavudev/sdk`, `zavudev` on PyPI, and the rest) call v1 only.** Call v2 with `fetch`, `curl` or any HTTP client.
+**From TypeScript, use `client.v2` of `@zavudev/sdk` 0.59.0 or later.** Every other SDK (`zavudev` on PyPI and the rest) calls v1 only: from those languages, call v2 with `fetch`, `curl` or any HTTP client. The HTTP examples below are what `client.v2` sends.
+
+```typescript
+import Zavudev from "@zavudev/sdk";
+import type { MessageSendParams } from "@zavudev/sdk/v2"; // v2 types; the root exports v1's
+
+const zavu = new Zavudev(); // reads ZAVUDEV_API_KEY
+
+const params: MessageSendParams = { from: "+13125551212", to: "+56912345678", text: "Hi" };
+const { message, routing } = await zavu.v2.messages.send(params);
+
+// Every path id is positional, in path order. Pass the address raw: the SDK encodes it.
+await zavu.v2.channels.activate("+13125551212", "whatsapp");
+await zavu.v2.agents.channels.disconnect("agent_abc123", "+13125551212", "sms");
+
+// Lists page for you.
+for await (const entry of zavu.v2.channels.list()) console.log(entry.address, entry.type);
+
+// Errors are v1's classes; the v2 body `{code, message, details}` is on `err.error`.
+try {
+  await zavu.v2.messages.send({ to: "+56912345678", text: "Hi" });
+} catch (err) {
+  if (!(err instanceof Zavudev.ConflictError)) throw err;
+  const body = err.error as { code?: string; details?: { connect?: unknown[] } } | undefined;
+  if (body?.code === "no_channel") console.log(body.details?.connect);
+}
+```
+
+Methods: `messages` (`send`, `list`, `retrieve`), `conversations` (`list`, `retrieve`, `listMessages`, `markAsRead`), `contacts` (`list`, `create`, `retrieve`, `update`, `delete`), `channels` (`list`, `connect`, `retrieve`, `activate`, `deactivate`, `disconnect`), `templates` (`list`, `create`, `retrieve`, `delete`, `submit`), `campaigns` (`list`, `create`, `retrieve`, `delete`, `send`, `progress`, `cancel`, `recipients.add`), `webhook` (`retrieve`, `set`, `delete`, `rotateSecret`), `agents` (`list`, `create`, `retrieve`, `update`, `delete`, `test`, `channels.connect`, `channels.disconnect`), `numbers` (`searchAvailable`, `purchase`), `emailDomains` (`list`, `create`, `retrieve`, `delete`, `verify`), `functions` (`list`, `retrieve`, `update`).
+
+The rest of this skill shows the HTTP calls, through the `zavu()` helper under Basics.
 
 ## Basics
 
@@ -57,7 +87,7 @@ v2 names where a message leaves from the way the recipient sees it.
 
 `GET /v2/channels` lists one entry per (address, type): `{address, type, active, v1SenderId}`. A number with WhatsApp and SMS is two entries. `active: false` means connected but switched off. `v1SenderId` is the sender to pass as `Zavu-Sender` on v1 calls.
 
-In URL paths, encode the address: `+` is `%2B`.
+In URL paths over HTTP, encode the address: `+` is `%2B`. With `client.v2`, pass it raw.
 
 ## Connect a channel
 
@@ -202,7 +232,8 @@ Call these on v1 with the same key: voice calls (`/v1/calls`), 10DLC (`/v1/10dlc
 
 | Trap | Reality |
 |------|---------|
-| Using the SDK for v2 | The SDKs call v1. Use HTTP. |
+| Calling v2 from the SDK's root (`zavu.messages`) | That is v1. Use `zavu.v2.messages`, on `@zavudev/sdk` 0.59.0+. Other SDKs: use HTTP. |
+| Importing v2 types from `@zavudev/sdk` | The root exports v1's. Import from `@zavudev/sdk/v2`. |
 | Sending a `Zavu-Sender` header | v2 ignores it. Use `from` or `conversationId`. |
 | Treating `active: false` as disconnected | It is connected and switched off. `activate` turns it on. |
 | Parsing the address `sms_oneway` as a number | It is a literal. One-way SMS leaves from shared numbers. |
