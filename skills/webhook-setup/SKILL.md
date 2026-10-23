@@ -148,6 +148,8 @@ Present on `message.inbound` when the contact replied to (quoted) an earlier mes
 | `replyToText` | Truncated snippet of the quoted message's text (empty for media). |
 | `replyToMessageType` | Type of the quoted message (`text`, `image`, ...). |
 
+Filled in for WhatsApp only: inbound Telegram messages do not report what the contact quoted. To answer with a quote of your own, send `content.replyToMessageId: event.data.messageId` from the sender in `event.senderId` (see the send-message skill).
+
 ### Click-to-WhatsApp attribution
 
 When a contact reaches you by tapping a Click-to-WhatsApp (CTWA) ad or a post, `data.referral` carries where they came from. It is WhatsApp only, and it arrives on the **first** message of that conversation and on no message after it — persist it when it arrives, because there is no second delivery. Organic conversations never carry it.

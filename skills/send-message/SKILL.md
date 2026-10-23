@@ -386,6 +386,28 @@ await zavu.messages.react({
 });
 ```
 
+## Quoted Reply (WhatsApp and Telegram)
+
+Set `content.replyToMessageId` to the Zavu ID of the message you are answering, such as the `data.messageId` of a `message.inbound` webhook. The recipient sees that message quoted above yours.
+
+```typescript
+const telegram = event.data.channel === "telegram";
+await zavu.messages.send({
+  // Telegram's `data.from` is "telegram:<chatId>"; send to the bare chat id.
+  to: telegram ? event.data.telegramChatId : event.data.from,
+  channel: telegram ? "telegram" : "whatsapp",
+  text: "Your order ships tomorrow.",
+  content: { replyToMessageId: event.data.messageId },
+  'Zavu-Sender': event.senderId, // the sender that received it
+});
+```
+
+- WhatsApp: works on every message type except `reaction`. Telegram: works on every message type; a button tap (`data.isCallbackQuery: true` on the inbound) is not a message and cannot be quoted.
+- The quoted message must belong to the same conversation as `to`, and must have been sent or received by the sender this message goes out from. Pass that sender in `Zavu-Sender`.
+- Set `channel` explicitly. With `auto`, a phone number can route to SMS, which cannot quote.
+- A quote that cannot be delivered is refused, never sent unquoted: `404` when the message is not in this project, `400` for another channel, another conversation, another sender, a reaction, a Telegram button tap, a failed message, or a quoted message with no `providerMessageId` yet.
+- Only `replyToMessageId` is read from the request. Zavu fills `replyToProviderMessageId`, `replyToFrom`, `replyToText` and `replyToMessageType` on the stored message.
+
 ## Typing Indicator
 
 Mark an inbound WhatsApp message as read and show a typing indicator while you prepare a reply (`POST /v1/messages/{messageId}/typing`). It clears automatically when you send a reply or after 25 seconds. Only valid for inbound WhatsApp messages. Use it when a reply takes more than a couple of seconds (LLM agent, tool call, lookup).
