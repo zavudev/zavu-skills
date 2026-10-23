@@ -17,7 +17,7 @@ One thread with one contact, spanning every channel. A contact who writes on Wha
 
 | Field | Meaning |
 |-------|---------|
-| `id` | Thread ID. Same value as `conversationId` on messages, `conversation.new` and email `message.inbound`. |
+| `id` | Thread ID. Same value as `conversationId` on messages, `conversation.new` and `message.inbound`. |
 | `contactIdentifier` | The key the thread is filed under. **Not always a phone number** — see below. |
 | `contactId` | The contact, when resolved. Absent on group threads. |
 | `channels` | Every channel this thread has carried. |
@@ -171,12 +171,7 @@ Two constraints still apply when replying:
 
 ## Getting a conversation from a webhook
 
-`message.inbound` carries `data.conversationId` on **email** messages only, and it is `null` on the first email of a brand-new thread. On SMS, WhatsApp, Telegram, Instagram and Messenger the field is absent.
-
-Recovery order:
-1. Use `data.conversationId` when present (email).
-2. Otherwise `GET /v1/messages/{messageId}`, whose `conversationId` is always populated.
-3. For a brand-new contact, the `conversation.new` event also carries the id.
+`message.inbound` carries `data.conversationId` on every channel except reactions. It is always set: the webhook is sent once the message has been filed in its thread, so the first message of a new thread carries the same id as `conversation.new`, and the WhatsApp message that ties a BSUID to a phone number names the thread that remains. `GET /v1/messages/{messageId}` returns the same id.
 
 Do not fall back to listing conversations and matching on the phone number: on a busy project the thread may not be at the top yet, and the identifier may be a BSUID rather than the number you expected.
 
@@ -195,4 +190,3 @@ For live updates, subscribe a webhook to `message.inbound`, `message.sent`, `mes
 | Stopping pagination on a short page | The `channel` filter shrinks pages. Stop on `nextCursor === null`. |
 | Expecting `contactId` everywhere | Absent on group threads and unresolved contacts. |
 | Expecting `/read` to notify the contact | It only clears your own counter. |
-| Assuming `conversationId` is always on `message.inbound` | Only email carries it, and it is `null` on a brand-new thread. Recover it as described above. |

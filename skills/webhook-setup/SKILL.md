@@ -25,6 +25,7 @@ A **Sender** is the API handle you pass as `Zavu-Sender`; **accounts** (a WhatsA
 | `message.inbound` | Inbound | Customer sent you a message |
 | `conversation.new` | Inbound | First message from a new contact |
 | `message.unsupported` | Inbound | Unsupported message type received |
+| `contact.identity_linked` | Contacts | A WhatsApp contact known by BSUID was tied to a phone number, a contact known by phone received a BSUID, or a contact changed their number. `data` carries `contactId`, `bsuid`, `phoneNumber`, `reason` (`provider_reported`, `contact_shared`, `phone_changed`, `bsuid_changed`); `previousPhoneNumber` with `phone_changed`, where `bsuid` is `null` if WhatsApp never reported one; `mergedContactId` when two contacts were merged into `contactId`; `previousBsuid` when a BSUID you may hold no longer identifies the contact. Sent once per link |
 | `message.queued` | Outbound | Message queued for delivery |
 | `message.sent` | Outbound | Message sent to carrier |
 | `message.delivered` | Outbound | Message delivered to recipient |
@@ -92,8 +93,10 @@ For `message.inbound`, `data` carries the message. On inbound, `to` is your own 
 | Field | Description |
 |-------|-------------|
 | `messageId` | Zavu message ID. |
-| `conversationId` | Inbox thread id. **Email only**: absent on SMS, WhatsApp, Telegram, Instagram and Messenger, and `null` on the first email of a brand-new thread. Get it from `GET /v1/messages/{id}` otherwise. See "Deep-linking to the inbox" below. |
-| `from` | Sender: the contact for a 1:1, or the participant for a group message. Usually an E.164 phone number, but for WhatsApp contacts who adopted a username and hid their number it is their business-scoped user ID (BSUID, e.g. `US.13491208655302741918`) — treat it as opaque and pass it back as `to` when replying. |
+| `conversationId` | Inbox thread id. Always set, because the webhook is sent once the message is in its thread; the first message of a new thread carries the same id as `conversation.new`. Absent on reactions. See "Deep-linking to the inbox" below. |
+| `contactId` | The Zavu contact. Unlike `from`, it does not change when a WhatsApp contact's identifier switches between BSUID and phone number: **key on this, not on `from`**. The exception is a merge of two contacts for one person; `contact.identity_linked` then carries the old id as `mergedContactId`. Absent on reactions. |
+| `whatsapp` | WhatsApp only, when the BSUID is known: `{ bsuid, username? }`. |
+| `from` | Sender: the contact for a 1:1, or the participant for a group message. Usually an E.164 phone number, but for WhatsApp contacts who adopted a username and hid their number it is their business-scoped user ID (BSUID, e.g. `US.13491208655302741918`) — treat it as opaque and pass it back as `to` when replying. It is the phone only when WhatsApp includes it in that message, so it can switch between phone and BSUID for the same person. |
 | `to` | Your own number (the message's destination). |
 | `channel` | Delivery channel (`sms`, `whatsapp`, `telegram`, `email`, `instagram`, `messenger`, `voice`). |
 | `messageType` | `text`, `image`, `video`, etc. A reply to a `location_request` arrives as `location` (not a new type) with `content.replyToMessageId` set to the request — match on that to correlate. |
@@ -123,7 +126,7 @@ await zavu.messages.send({ to, channel: data.channel, text: "Thanks, we got it."
 
 ### Deep-linking to the inbox
 
-`conversation.new` carries a `conversationId` in `data` — the id of the inbox thread — and so does `message.inbound` on email. Build a direct link so your team can open the conversation in the Zavu dashboard:
+`conversation.new` carries a `conversationId` in `data` — the id of the inbox thread — and so does `message.inbound`. Build a direct link so your team can open the conversation in the Zavu dashboard:
 
 ```
 https://dashboard.zavu.dev/{locale}/inbox?conv={conversationId}
@@ -131,7 +134,7 @@ https://dashboard.zavu.dev/{locale}/inbox?conv={conversationId}
 
 `{locale}` is the dashboard UI language (e.g. `en`, `es`).
 
-On `message.inbound`, only email messages carry `conversationId`, and it is `null` on the first email of a brand-new thread. On SMS, WhatsApp, Telegram, Instagram and Messenger the field is absent. In every case, fetch it from `GET /v1/messages/{messageId}`, whose `conversationId` is always populated, or take it from `conversation.new` for a new contact.
+On `message.inbound`, `conversationId` is always set, and absent on reactions.
 
 ### Reply / quote context
 

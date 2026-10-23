@@ -172,7 +172,7 @@ curl -X PUT https://api.zavu.dev/v2/webhook \
 
 - The `201` that creates it returns `webhook.secret` once. Store it. Rotate with `POST /v2/webhook/secret`. Remove with `DELETE /v2/webhook`.
 - Payload: `{ id, event, timestamp, projectId, from, to, type, data }`. `data` is the v1 event data without `senderId`. On inbound events `from` is the contact and `to` your address.
-- `message.inbound` carries `data.conversationId` on email only. For other channels, read it from `GET /v2/messages/{messageId}`.
+- `message.inbound` carries `data.conversationId` (always set: the webhook is sent once the message is in its thread), `data.contactId`, and on WhatsApp `data.whatsapp.bsuid`. Key people on `contactId`, not `from`: for WhatsApp username contacts `from` is the phone only when WhatsApp includes it. `contact.identity_linked` fires when a BSUID is tied to a phone number; when that merges two contacts, its `mergedContactId` is the id that went away.
 - Verify `X-Zavu-Signature: t=<seconds>,v2=<hex>`: `v2 = HMAC_SHA256(secret, "{t}.{rawBody}")`, hex. New v2 webhooks sign with `v2`. Use the raw body, not re-serialized JSON. See the `webhook-setup` skill for verification code.
 - v1 sender webhooks keep receiving events too, as separate deliveries. Once the v2 receiver works, `PUT /v2/webhook` again with `"disableSenderWebhooks": true`. `GET /v2/webhook` lists the ones still on in `senderWebhooks`.
 

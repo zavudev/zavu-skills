@@ -142,6 +142,17 @@ order rather than newest-first, and `cursor` is opaque in both modes. Pass back
 exactly what the previous response returned, and start a fresh pagination run
 whenever the search term changes.
 
+### WhatsApp username contacts (BSUID)
+
+A WhatsApp contact that adopted a username can be known by its business-scoped user ID (BSUID) instead of, or as well as, a phone number. When Zavu has one, the contact carries `whatsapp: { bsuid, username? }`; otherwise the key is absent. Find the contact with the exact `bsuid` filter (use REST, the SDK may not expose it yet):
+
+```bash
+curl "https://api.zavu.dev/v1/contacts?bsuid=CO.13491208655302741918" \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY"
+```
+
+It returns the contact holding that BSUID or an empty list, narrows further with `phoneNumber` and `tag`, and returns `400` combined with a non-blank `search` or when the value is not shaped like a BSUID (a blank `bsuid` is ignored). The same contact keeps its `id` when a phone number is linked later, unless the link reveals a second contact for the same person and the two are merged; subscribe to `contact.identity_linked`, whose `mergedContactId` names the id that went away. See the `webhook-setup` skill.
+
 ## Tags
 
 Flat labels on a contact, for grouping an audience you send to more than once.
