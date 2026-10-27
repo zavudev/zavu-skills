@@ -261,7 +261,7 @@ Registration charges The Campaign Registry's own fees from your balance, passed 
 
 One-time fees are charged at submission and refunded, once, if the carrier rejects the registration or it never reaches the carrier. The monthly campaign fee is the published one above, charged from the first day the campaign is approved.
 
-Statuses move on their own: pending campaigns are re-read from the carrier every 30 minutes, so polling `GET /v1/10dlc/campaigns/{campaignId}` is enough. Phone number assignments are `pending`, `active` or `failed` (the carrier refused the number; it can be assigned again); a removed assignment is no longer listed. Brand `ein` must be 9 digits (`XX-XXXXXXX`) and `website` a full URL, or the request is refused with `400`.
+Statuses move on their own: pending campaigns are re-read from the carrier every 30 minutes, so polling `GET /v1/10dlc/campaigns/{campaignId}` is enough. Phone number assignments are `pending`, `active` or `failed` (the carrier refused the number; it can be assigned again); a removed assignment is no longer listed. Brand `ein` must be 9 digits (`XX-XXXXXXX`) and `website` a full URL, or the request is refused with `400`. Every entity type except `SOLE_PROPRIETOR` needs an `ein` to be submitted: a brand without one is refused by `POST /v1/10dlc/brands/{brandId}/submit` with `400`, before anything is charged. A sole proprietor's `phone` must be a mobile number, because the carrier texts a verification code to it.
 
 10DLC registration is managed through the Zavu dashboard. Contact support for high-volume US messaging requirements.
 
