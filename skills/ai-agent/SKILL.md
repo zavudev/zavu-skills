@@ -269,7 +269,7 @@ curl -X POST https://api.zavu.dev/v1/calls/call_abc123/hangup \
   -H "Authorization: Bearer $ZAVU_API_KEY"
 ```
 
-The transcript is a list of turns, each `{ seq, role, text }` where `role` is `user`, `assistant`, or `tool`. It is included when fetching a single call and omitted from the list. `durationSeconds`, `endReason`, `turnCount`, and `cost` populate once the call ends.
+The transcript is a list of turns, each `{ seq, role, text }` where `role` is `user`, `assistant`, or `tool`. It is included when fetching a single call and omitted from the list. `durationSeconds`, `endReason`, `turnCount`, and `cost` populate once the call ends. `cost` can still grow afterwards: on an agent that runs a premium model, the model's tokens are charged between 30 minutes and 24 hours after the call ends, so read the call again rather than storing the figure from `call.completed`.
 
 ## Addressing an agent
 
