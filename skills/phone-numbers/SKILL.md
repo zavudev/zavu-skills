@@ -70,6 +70,16 @@ foreach ($result->items as $number) {
 }
 ```
 
+Reading the answer:
+
+| Response | Meaning |
+|---|---|
+| `200` with empty `items` | The country is served, but nothing matched these filters: no stock of this `type`, or no number containing these digits. A `type` the country does not sell answers this way too: retry with another `type`. |
+| `400 country_restricted` | The country is not sold self-service. The message names who to contact. |
+| `400 invalid_request` with `details.field: "contains"` | The inventory refused the `contains` pattern itself. A pattern that only matched nothing is answered `200` with empty `items`. |
+| `404 country_unavailable` | No numbers are stocked in this country. |
+| `502 inventory_unavailable` | The inventory could not be reached, or refused a search it should accept. Retry; do not treat it as no stock. |
+
 ## Purchase Phone Number
 
 ```typescript
