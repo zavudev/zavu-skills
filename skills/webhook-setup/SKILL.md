@@ -102,6 +102,7 @@ For `message.inbound`, `data` carries the message. On inbound, `to` is your own 
 | `messageType` | `text`, `image`, `video`, etc. A reply to a `location_request` arrives as `location` (not a new type) with `content.replyToMessageId` set to the request — match on that to correlate. |
 | `text` | Text body or media caption, when present. |
 | `providerTimestamp` | The provider's original receive time (Unix ms) for WhatsApp, Telegram, Instagram, Messenger; `null` for SMS and email. Compare with the top-level `timestamp` to detect delayed deliveries. |
+| `heldAt` | Only on a message held while the monthly allowance was spent and delivered later, once the team paid: when it was held (Unix ms). Such a message can be days old; decide whether an automated reply still makes sense. |
 | `referral` | Click-to-WhatsApp ad attribution. WhatsApp only, and only on the first message of an ad-originated thread. See "Click-to-WhatsApp attribution" below. |
 | `telegramChatId` | Telegram only: the chat ID to send back to, without a prefix. |
 | `instagramSenderId` | Instagram only: the sender's ID to send back to, without a prefix. |

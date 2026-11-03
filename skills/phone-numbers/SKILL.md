@@ -25,7 +25,7 @@ for (const number of result.items) {
   console.log(number.locality);          // San Francisco
   console.log(number.capabilities);      // { sms: true, voice: true, mms: true }
   console.log(number.pricing.monthlyPrice); // 1.25
-  console.log(number.pricing.isFreeEligible); // true (paid plans include one US number, once per account)
+  console.log(number.pricing.isFreeEligible); // true when this account can claim it as its plan's included number (+1, $20/mo or less, once per account); false on Free
 }
 ```
 
@@ -91,7 +91,7 @@ console.log(result.phoneNumber.id);     // pn_abc123
 console.log(result.phoneNumber.status); // "active"
 ```
 
-**Buying numbers requires a paid plan.** The Free plan cannot purchase phone numbers (the API returns `402` with code `paid_plan_required`). A paid plan includes one number at no charge, once per account: it must be a US or Canadian number (a +1 number) costing $20 a month or less. `pricing.isFreeEligible` in search results marks the numbers that qualify.
+**Buying numbers requires a paid plan.** The Free plan cannot purchase phone numbers (the API returns `402` with code `paid_plan_required`). A paid plan includes one number at no charge, once per account: it must be a US or Canadian number (a +1 number) costing $20 a month or less. `pricing.isFreeEligible` in search results marks the numbers this account can claim: it is `false` on Free and once the benefit is claimed, even for a number that would otherwise qualify.
 
 ## Phone Number Types
 
@@ -126,6 +126,10 @@ await zavu.phoneNumbers.update("pn_abc123", { senderId: null });
 // Release number (must not be assigned to a sender)
 await zavu.phoneNumbers.release("pn_abc123");
 ```
+
+A number on its way out carries `releaseAt` (ISO 8601) on the REST response: the date it goes back to the carrier, after a paid plan ended or at the end of the 7-day grace after a renewal could not be paid. Paying, or returning to a paid plan, before that date keeps it; a released number cannot be recovered.
+
+**When a paid plan ends, the team keeps one number.** It is the one chosen in the dashboard when cancelling (there is no API for the choice), else the number the plan included, else the oldest bought one; numbers you brought yourself are never released. The kept number is billed monthly from the balance at its listed price (an included number's first month is charged when the plan ends; a bought one keeps its renewal date), and a renewal the balance cannot pay suspends it with the usual 7-day grace. Every other number keeps working, unbilled, and gets `releaseAt` 7 days after the plan ends. Returning to a paid plan before then keeps them, billed as paid numbers again; the kept number is the included one again only if it was the included one.
 
 ## Regulatory Requirements
 
@@ -277,7 +281,7 @@ Statuses move on their own: pending campaigns are re-read from the carrier every
 
 ## Constraints
 
-- Phone number purchase requires a paid plan (`402 paid_plan_required` on Free); a paid plan includes one number, once per account (Pro: a US number)
+- Phone number purchase requires a paid plan (`402 paid_plan_required` on Free); a paid plan includes one number, once per account (a US or Canadian +1 number, $20/mo or less)
 - Phone number name: max 100 characters
 - Phone numbers must be unassigned from senders before release
 - Addresses are created `pending` and documents `uploaded` and stay that way; poll the number's `regulatoryStatus`, not these
