@@ -285,7 +285,7 @@ await zavu.messages.send({
 
 ### Template Message
 
-`templateVariables` fill body placeholders (keyed by position `1`, `2`, ... for positional templates, or by name for named ones — do not mix). `templateButtonVariables` fill dynamic URL/OTP button placeholders (keyed by button index `0`, `1`, `2`). `templateHeaderVariables` set a text-header variable (keyed by `1`). On WhatsApp, body and header values may not contain line breaks, tabs or more than 4 consecutive spaces: the send is rejected with `400 invalid_request` naming the value in `details.field`.
+`templateVariables` fill body placeholders (keyed by position `1`, `2`, ... for positional templates, or by name for named ones — do not mix). `templateButtonVariables` fill dynamic URL/OTP button placeholders (keyed by button index `0`, `1`, `2`). `templateHeaderVariables` set a text-header variable (keyed by `1`). For a template whose header is image, video or document, `templateHeaderMediaUrl` (HTTPS URL, publicly reachable when the message is sent) replaces the template's stored file for this send, and `templateHeaderFilename` (max 240 chars, `document` headers only; alone it names the stored file) sets the name the recipient sees. Either field on a template with a non-matching header is rejected with `400 invalid_request` (`details.field`) before anything is sent. Without them the stored file is sent. On WhatsApp, body and header values may not contain line breaks, tabs or more than 4 consecutive spaces: the send is rejected with `400 invalid_request` naming the value in `details.field`.
 
 ```typescript
 await zavu.messages.send({
@@ -295,6 +295,21 @@ await zavu.messages.send({
     templateId: "tpl_abc123",
     templateVariables: { "1": "John", "2": "ORD-12345" },
     templateButtonVariables: { "0": "abc-report-token" }, // optional: dynamic URL/OTP buttons
+  },
+});
+```
+
+Document header with a per-message file:
+
+```typescript
+await zavu.messages.send({
+  to: "+14155551234",
+  messageType: "template",
+  content: {
+    templateId: "tpl_abc123", // header type: document
+    templateVariables: { "1": "John" },
+    templateHeaderMediaUrl: "https://files.example.com/invoices/INV-1042.pdf?sig=abc123",
+    templateHeaderFilename: "invoice-1042.pdf",
   },
 });
 ```
