@@ -40,10 +40,8 @@ claude mcp add zavudev --scope user \
 | Language | Package | Install |
 |----------|---------|---------|
 | TypeScript | `@zavudev/sdk` | `npm add @zavudev/sdk` |
-| Python | `zavudev` | `pip install zavudev` |
-| Go | `github.com/zavudev/sdk-go` | `go get github.com/zavudev/sdk-go` |
-| PHP | `zavudev/sdk-php` | Composer |
-| Ruby | `zavudev/sdk-ruby` | RubyGems |
+
+`@zavudev/sdk` is the only maintained SDK. It covers API v1 and API v2 (`client.v2`). The Python, Go, PHP, Ruby, Java, Kotlin and C# packages are no longer updated: they have no API v2 and miss v1 fields added since September 2026. Do not use them in new code. From any language other than TypeScript, call the REST API directly (`https://api.zavu.dev`, `Authorization: Bearer $ZAVUDEV_API_KEY`) or generate a client from the OpenAPI specs at `https://docs.zavu.dev/openapi.json` (v1) and `https://docs.zavu.dev/api-reference/v2/openapi.json` (v2).
 
 ## Links
 

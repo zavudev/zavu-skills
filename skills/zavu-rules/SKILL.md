@@ -12,10 +12,8 @@ Zavu is a unified multi-channel messaging API. One API to send messages via SMS,
 | Language | Package | Install |
 |----------|---------|---------|
 | TypeScript | `@zavudev/sdk` | `npm add @zavudev/sdk` |
-| Python | `zavudev` | `pip install zavudev` |
-| Go | `github.com/zavudev/sdk-go` | `go get github.com/zavudev/sdk-go` |
-| PHP | `zavudev/sdk-php` | Composer |
-| Ruby | `zavudev/sdk-ruby` | RubyGems |
+
+`@zavudev/sdk` is the only maintained SDK. It covers API v1 and API v2 (`client.v2`). The Python, Go, PHP, Ruby, Java, Kotlin and C# packages are no longer updated: they have no API v2 and miss v1 fields added since September 2026. Do not use them in new code. From any language other than TypeScript, call the REST API directly (`https://api.zavu.dev`, `Authorization: Bearer $ZAVUDEV_API_KEY`) or generate a client from the OpenAPI specs at `https://docs.zavu.dev/openapi.json` (v1) and `https://docs.zavu.dev/api-reference/v2/openapi.json` (v2).
 
 ## Tooling
 
@@ -34,47 +32,6 @@ import Zavudev from '@zavudev/sdk';
 const zavu = new Zavudev({
   apiKey: process.env['ZAVUDEV_API_KEY'],
 });
-```
-
-### Python Init
-
-```python
-import os
-from zavudev import Zavudev
-
-zavu = Zavudev(api_key=os.environ.get("ZAVUDEV_API_KEY"))
-```
-
-### Python Async
-
-```python
-from zavudev import AsyncZavudev
-
-zavu = AsyncZavudev(api_key=os.environ.get("ZAVUDEV_API_KEY"))
-```
-
-### Go Init
-
-```go
-import "github.com/zavudev/sdk-go"
-
-client := zavudev.NewClient(os.Getenv("ZAVUDEV_API_KEY"))
-```
-
-### Ruby Init
-
-```ruby
-require "zavudev"
-
-client = Zavudev::Client.new(api_key: ENV["ZAVUDEV_API_KEY"])
-```
-
-### PHP Init
-
-```php
-use Zavudev\Client;
-
-$client = new Client(apiKey: getenv('ZAVUDEV_API_KEY'));
 ```
 
 ## Authentication
@@ -108,17 +65,6 @@ try {
 }
 ```
 
-### Python
-
-```python
-from zavudev import Zavudev, APIError
-
-try:
-    zavu.messages.send(to="+14155551234", text="Hello")
-except APIError as e:
-    print(e.status_code, e.message)
-```
-
 ## Key Business Rules
 
 1. **WhatsApp 24h window**: Free-form messages require an open conversation window (user messaged you in last 24h). Use template messages to initiate conversations outside the window.
@@ -146,7 +92,7 @@ The `zavudev/cli` package provides terminal access to all API operations.
 
 ## Rate Limits
 
-Check `X-RateLimit-Remaining` header. Use `.withResponse()` (TS) or `.with_raw_response()` (Python) to access response headers.
+Check `X-RateLimit-Remaining` header. Use `.withResponse()` to access response headers.
 
 ## Message Statuses
 

@@ -42,50 +42,6 @@ const template = await zavu.templates.create({
 console.log(template.id); // tpl_xxx
 ```
 
-**Python:**
-```python
-template = zavu.templates.create(
-    name="order_confirmation",
-    language="en",
-    body="Hi {{1}}, your order {{2}} has been confirmed and will ship within 24 hours.",
-    whatsapp_category="UTILITY",
-    variables=["customer_name", "order_id"],
-)
-```
-
-**Go:**
-```go
-template, err := client.Templates.Create(context.TODO(), zavudev.TemplateCreateParams{
-    Name:             zavudev.String("order_confirmation"),
-    Language:         zavudev.String("en"),
-    Body:             zavudev.String("Hi {{1}}, your order {{2}} has been confirmed and will ship within 24 hours."),
-    WhatsappCategory: zavudev.String("UTILITY"),
-    Variables:        []string{"customer_name", "order_id"},
-})
-```
-
-**Ruby:**
-```ruby
-template = client.templates.create(
-    name: "order_confirmation",
-    language: "en",
-    body: "Hi {{1}}, your order {{2}} has been confirmed and will ship within 24 hours.",
-    whatsapp_category: "UTILITY",
-    variables: ["customer_name", "order_id"],
-)
-```
-
-**PHP:**
-```php
-$template = $client->templates->create([
-    'name' => 'order_confirmation',
-    'language' => 'en',
-    'body' => 'Hi {{1}}, your order {{2}} has been confirmed and will ship within 24 hours.',
-    'whatsappCategory' => 'UTILITY',
-    'variables' => ['customer_name', 'order_id'],
-]);
-```
-
 ## Channel-Specific Bodies
 
 Templates can have different bodies per channel. The default `body` is used for WhatsApp; SMS, Telegram, and Instagram fall back to `body` if no channel-specific body is set.
@@ -308,18 +264,6 @@ await zavu.messages.send({
     templateVariables: { "1": "John", "2": "ORD-12345" },
   },
 });
-```
-
-**Python:**
-```python
-zavu.messages.send(
-    to="+14155551234",
-    message_type="template",
-    content={
-        "templateId": "tpl_abc123",
-        "templateVariables": {"1": "John", "2": "ORD-12345"},
-    },
-)
 ```
 
 ## Template Lifecycle

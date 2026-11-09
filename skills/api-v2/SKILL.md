@@ -11,7 +11,7 @@ Use this skill when code calls `https://api.zavu.dev/v2`, or when the user asks 
 
 v1 is not deprecated. It keeps working unchanged, and v1 and v2 calls can be mixed in one codebase with the same API key and the same IDs. Use the other skills for v1.
 
-**From TypeScript, use `client.v2` of `@zavudev/sdk` 0.59.0 or later.** Every other SDK (`zavudev` on PyPI and the rest) calls v1 only: from those languages, call v2 with `fetch`, `curl` or any HTTP client. The HTTP examples below are what `client.v2` sends.
+**From TypeScript, use `client.v2` of `@zavudev/sdk` 0.59.0 or later.** From any other language, call v2 with `curl`, `requests` or any HTTP client. The HTTP examples below are what `client.v2` sends.
 
 ```typescript
 import Zavudev from "@zavudev/sdk";

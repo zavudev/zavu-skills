@@ -63,39 +63,6 @@ const result = await zavu.messages.send({
 console.log(result.message.id);
 ```
 
-**Python:**
-```python
-result = zavu.messages.send(
-    to="+14155551234",
-    text="Your verification code is 123456",
-)
-print(result.message.id)
-```
-
-**Go:**
-```go
-result, err := client.Messages.Send(context.TODO(), zavudev.MessageSendParams{
-    To:   zavudev.String("+14155551234"),
-    Text: zavudev.String("Your verification code is 123456"),
-})
-fmt.Println(result.Message.ID)
-```
-
-**Ruby:**
-```ruby
-result = client.messages.send(to: "+14155551234", text: "Your verification code is 123456")
-puts result.message.id
-```
-
-**PHP:**
-```php
-$result = $client->messages->send([
-    'to' => '+14155551234',
-    'text' => 'Your verification code is 123456',
-]);
-echo $result->message->id;
-```
-
 ### WhatsApp Text
 
 ```typescript

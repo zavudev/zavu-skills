@@ -29,47 +29,6 @@ for (const number of result.items) {
 }
 ```
 
-**Python:**
-```python
-result = zavu.phone_numbers.search_available(
-    country_code="US",
-    type="local",
-    contains="555",
-    limit=10,
-)
-for number in result.items:
-    print(number.phone_number, number.pricing.monthly_price)
-```
-
-**Go:**
-```go
-result, err := client.PhoneNumbers.SearchAvailable(context.TODO(), zavudev.PhoneNumberSearchAvailableParams{
-    CountryCode: "US",
-    Type:        zavudev.PhoneNumberTypeLocal,
-    Contains:    zavudev.String("555"),
-    Limit:       zavudev.Int(10),
-})
-for _, number := range result.Items {
-    fmt.Println(number.PhoneNumber, number.Pricing.MonthlyPrice)
-}
-```
-
-**Ruby:**
-```ruby
-result = client.phone_numbers.search_available(country_code: "US", type: "local", contains: "555", limit: 10)
-result.items.each { |number| puts "#{number.phone_number} #{number.pricing.monthly_price}" }
-```
-
-**PHP:**
-```php
-$result = $client->phoneNumbers->searchAvailable(
-    countryCode: 'US', type: 'local', contains: '555', limit: 10,
-);
-foreach ($result->items as $number) {
-    echo $number->phoneNumber . ' ' . $number->pricing->monthlyPrice . "\n";
-}
-```
-
 Reading the answer:
 
 | Response | Meaning |
