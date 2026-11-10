@@ -187,6 +187,18 @@ resume (`503` while stopped, `404` once deleted). At most 20 ports per sandbox
 events on `client.invitations.webhook`. On an older SDK, use the REST calls
 above.
 
+## CLI
+
+`zavudev` 0.15.0 and later has `npx zavudev sandboxes`: `create` (`--size`,
+`--timeout`/`--no-timeout`, `--ephemeral`, `--env KEY=value`, `--environment`,
+`--from`, `--setup-script`, `--wait`), `list`, `get`, `stop`, `resume`, `fork`,
+`delete`, `exec <id> -- <command>` (exits with the command's code;
+`--background` plus `command <id> <commandId>`), `files read|write|list|rm`,
+`ports expose|list`, `ssh`, `desktop`, `snapshots list|get|create|delete|share|unshare`
+and `environments list|get|create|update|delete`. The project webhook that
+receives the sandbox events is `npx zavudev project-webhook set --url <url>
+--event sandbox.stopped` (repeat `--event`; prints the secret once).
+
 ## Limits and errors
 
 | | |
