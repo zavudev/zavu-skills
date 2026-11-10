@@ -237,13 +237,13 @@ Not yet generated in the SDKs — use the REST endpoint directly:
 ```bash
 # Single address
 curl -X POST https://api.zavu.dev/v1/introspect/email \
-  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"email": "maria@example.com"}'
 
 # Batch (max 100 per request)
 curl -X POST https://api.zavu.dev/v1/introspect/email \
-  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"emails": ["maria@example.com", "info@deaddomain.example", "not-an-email"]}'
 ```

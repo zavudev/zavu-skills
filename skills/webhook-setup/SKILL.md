@@ -196,7 +196,7 @@ To retrieve them, call `GET /v1/messages/{messageId}/attachments` with the `mess
 
 ```bash
 curl https://api.zavu.dev/v1/messages/MESSAGE_ID/attachments \
-  -H "Authorization: Bearer $ZAVU_API_KEY"
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY"
 ```
 
 ```json
@@ -536,7 +536,7 @@ matters: a receiver that answers `200` before verifying looks identical to a
 working one from Zavu's side, so a passing test request proves nothing. Confirm
 in the receiver's own logs.
 
-Full guide: https://docs.zavu.dev/guides/receiving-messages/signature-migration
+Full guide: https://www.zavu.dev/docs/guides/receiving-messages/signature-migration
 
 ## Tool webhooks are a different format
 

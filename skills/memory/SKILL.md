@@ -178,7 +178,11 @@ separate group (`memory collections create`, plural).
 
 ## From the REST API
 
-`@zavudev/sdk` does **not** have a memory resource yet — use `curl` or `fetch`.
+`@zavudev/sdk` has `client.memory` (`add`, `search`, `list`, `retrieve`, `delete`,
+`wipe`, `usage`), `client.memory.collections` and `client.memory.collections.items`
+(`put(key, { collection, scope, value })`, `retrieve`, `list`, `batch`, `delete`).
+In the SDK, items take the scope as a string (`"contact:<id>"`), like the REST
+query parameter. Every call is also plain REST:
 
 Scope is passed **in the body** on the two POSTs that write or search facts,
 and as a **`?scope=` query parameter** on everything else. That asymmetry is
@@ -187,26 +191,26 @@ the most common source of a confusing 404.
 ```bash
 # Remember (scope in the BODY)
 curl -X POST https://api.zavu.dev/v1/memory \
-  -H "Authorization: Bearer $ZAVU_API_KEY" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY" -H "Content-Type: application/json" \
   -d '{"text":"Prefers WhatsApp.","scope":"contact","contactId":"jd7x..."}'
 
 # Recall (scope in the BODY)
 curl -X POST https://api.zavu.dev/v1/memory/search \
-  -H "Authorization: Bearer $ZAVU_API_KEY" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY" -H "Content-Type: application/json" \
   -d '{"query":"contact preference","scope":"contact","contactId":"jd7x...","minScore":0.3}'
 
 # List / read / delete (scope in the QUERY STRING)
-curl "https://api.zavu.dev/v1/memory?scope=contact:jd7x..." -H "Authorization: Bearer $ZAVU_API_KEY"
+curl "https://api.zavu.dev/v1/memory?scope=contact:jd7x..." -H "Authorization: Bearer $ZAVUDEV_API_KEY"
 curl -X DELETE "https://api.zavu.dev/v1/memory/$MEMORY_ID?scope=contact:jd7x..." \
-  -H "Authorization: Bearer $ZAVU_API_KEY"
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY"
 
 # Collections
 curl -X POST https://api.zavu.dev/v1/memory/collections \
-  -H "Authorization: Bearer $ZAVU_API_KEY" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY" -H "Content-Type: application/json" \
   -d '{"name":"orders","indexes":[{"field":"status"}]}'
 
 curl -X PUT "https://api.zavu.dev/v1/memory/collections/orders/items/ORD-1?scope=contact:jd7x..." \
-  -H "Authorization: Bearer $ZAVU_API_KEY" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY" -H "Content-Type: application/json" \
   -d '{"value":{"status":"shipped"}}'
 ```
 

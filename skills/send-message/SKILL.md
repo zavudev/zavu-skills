@@ -306,7 +306,7 @@ Not yet generated in the SDK — use REST:
 
 ```bash
 curl -X POST https://api.zavu.dev/v1/messages \
-  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "to": "+14155551234",
@@ -341,7 +341,7 @@ Not yet generated in the SDK — use REST:
 
 ```bash
 curl -X POST https://api.zavu.dev/v1/messages \
-  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "to": "US.13491208655302741918",
@@ -396,7 +396,7 @@ Mark an inbound WhatsApp message as read and show a typing indicator while you p
 
 ```bash
 curl -X POST https://api.zavu.dev/v1/messages/MESSAGE_ID/typing \
-  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY" \
   -H "Zavu-Sender: sender_12345"
 ```
 
@@ -501,7 +501,7 @@ do {
 | `EMAIL_DOMAIN_NOT_FOUND` | Recipient domain has no MX or A records (async) | Remove the address; the send would hard bounce |
 | `EMAIL_RECIPIENT_SUPPRESSED` | Address bounced or complained before (async) | Remove it from your lists |
 
-**What verification changes, and what it does not.** An account sends on every channel, to any destination, from its first minute. No channel asks for identity or business verification in order to send. What verification changes is the daily ceiling: identity verification (KYC), a saved payment method, a settled deposit or a paid plan each lift an account off the lowest rung, and identity or business verification is what takes SMS to 10,000 a day. Business verification (KYB) is still required to register a 10DLC brand and campaign, which every +1 SMS destination needs. Email has no verification gate: a sender with a verified domain sends from day one within the plan quota (100/day and 3,000/month on Free; the monthly cap lifts once the team has added funds). Reference: https://docs.zavu.dev/concepts/sending-limits
+**What verification changes, and what it does not.** An account sends on every channel, to any destination, from its first minute. No channel asks for identity or business verification in order to send. What verification changes is the daily ceiling: identity verification (KYC), a saved payment method, a settled deposit or a paid plan each lift an account off the lowest rung, and identity or business verification is what takes SMS to 10,000 a day. Business verification (KYB) is still required to register a 10DLC brand and campaign, which every +1 SMS destination needs. Email has no verification gate: a sender with a verified domain sends from day one within the plan quota (100/day and 3,000/month on Free; the monthly cap lifts once the team has added funds). Reference: https://www.zavu.dev/docs/concepts/sending-limits
 
 **Every `sms`, `sms_oneway`, `email` and `voice` message is read before it is sent** — its content, and the pattern of sends around it. Three outcomes. It is sent, which is the normal one. It is **held** for a short review: the message stays `queued` (no new status, `MessageStatus` is unchanged), and it sends normally once approved; the window is a couple of hours. Or it is **refused**: the message fails with `RISK_BLOCKED`, `RISK_REJECTED` or `RISK_REVIEW_EXPIRED` in `errorCode` and fires `message.failed`, and a refused SMS is not charged. A call is never held — a call the review stops is failed rather than placed late. Repeated refusals suspend the account's sending (`403 sending_suspended`). A broadcast is read once, on its own text, not per recipient. Do not build retry logic that re-sends a message that failed with one of these codes: the content is what was refused, so an identical retry is refused identically.
 

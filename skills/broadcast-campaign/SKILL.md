@@ -166,7 +166,7 @@ The progress response and the broadcast carry the `sent` count as `sent` and `se
 
 ```bash
 curl -s https://api.zavu.dev/v1/broadcasts/$BROADCAST_ID/progress \
-  -H "Authorization: Bearer $ZAVU_API_KEY"
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY"
 # { "total": 500, "sent": 120, "delivered": 360, "failed": 20, ... }
 ```
 

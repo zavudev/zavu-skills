@@ -140,7 +140,7 @@ Voice lives under the agent's `voice` object on `POST`/`PATCH /v1/senders/{sende
 
 ```bash
 curl -X PATCH https://api.zavu.dev/v1/senders/snd_abc123/agent \
-  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "voice": {
@@ -190,7 +190,7 @@ Over REST (or on an older SDK):
 
 ```bash
 curl -X POST https://api.zavu.dev/v1/calls \
-  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "to": "+56912345678",
@@ -210,15 +210,15 @@ SDK: `zavu.calls.retrieve(callId)` (includes the transcript), `zavu.calls.list({
 ```bash
 # Single call, including the ordered transcript
 curl https://api.zavu.dev/v1/calls/call_abc123 \
-  -H "Authorization: Bearer $ZAVU_API_KEY"
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY"
 
 # List recent calls (filter by status / direction)
 curl "https://api.zavu.dev/v1/calls?direction=outbound&status=completed&limit=50" \
-  -H "Authorization: Bearer $ZAVU_API_KEY"
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY"
 
 # Hang up an active (queued, ringing or in-progress) call; an ended call answers 409
 curl -X POST https://api.zavu.dev/v1/calls/call_abc123/hangup \
-  -H "Authorization: Bearer $ZAVU_API_KEY"
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY"
 ```
 
 The transcript is a list of turns, each `{ seq, role, text }` where `role` is `user`, `assistant`, or `tool`. It is included when fetching a single call and omitted from the list. `durationSeconds`, `endReason`, `turnCount`, and `cost` populate once the call ends. `cost` can still grow afterwards: on an agent that runs a premium model, the model's tokens are charged between 30 minutes and 24 hours after the call ends, so read the call again rather than storing the figure from `call.completed`.

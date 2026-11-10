@@ -47,7 +47,7 @@ A newly connected WhatsApp account, Telegram bot, Instagram account, Messenger P
 
 ```bash
 curl -X POST https://api.zavu.dev/v1/senders/sender_12345/channels/telegram/activate \
-  -H "Authorization: Bearer $ZAVU_API_KEY"
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY"
 ```
 
 ```json

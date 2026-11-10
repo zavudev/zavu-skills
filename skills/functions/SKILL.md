@@ -913,7 +913,7 @@ To go back to manual control: delete the function (`npx zavudev fn delete`) and 
 
 ### Cleaning up a function you created
 
-`fn delete` cascades: the Lambda, triggers, secrets, deployment history, and
+`fn delete` cascades: the deployed runtime, triggers, secrets, deployment history, and
 every agent and tool the function owns. It asks you to type the slug back.
 
 Non-interactively, assert the slug up front:
@@ -1005,13 +1005,13 @@ The auto-provisioned key has `messages:send`, `messages:read`, `contacts:read` s
 
 ## Reference docs
 
-- Overview: https://docs.zavu.dev/concepts/functions
-- Quickstart: https://docs.zavu.dev/guides/functions/quickstart
-- CLI reference: https://docs.zavu.dev/guides/functions/cli
-- defineAgent: https://docs.zavu.dev/guides/functions/defining-agents
-- defineTool: https://docs.zavu.dev/guides/functions/defining-tools
-- Debugging guide: https://docs.zavu.dev/guides/functions/debugging
-- Examples: https://docs.zavu.dev/guides/functions/examples/restaurant
+- Overview: https://www.zavu.dev/docs/concepts/functions
+- Quickstart: https://www.zavu.dev/docs/guides/functions/quickstart
+- CLI reference: https://www.zavu.dev/docs/guides/functions/cli
+- defineAgent: https://www.zavu.dev/docs/guides/functions/defining-agents
+- defineTool: https://www.zavu.dev/docs/guides/functions/defining-tools
+- Debugging guide: https://www.zavu.dev/docs/guides/functions/debugging
+- Examples: https://www.zavu.dev/docs/guides/functions/examples/restaurant
 
 ## Constraints
 

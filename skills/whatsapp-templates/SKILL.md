@@ -224,13 +224,13 @@ Not generated in the SDK yet — call it over REST:
 ```bash
 # Sync every WhatsApp sender in the project
 curl -X POST https://api.zavu.dev/v1/templates/sync \
-  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{}'
 
 # Or scope it to one sender's WhatsApp Business Account
 curl -X POST https://api.zavu.dev/v1/templates/sync \
-  -H "Authorization: Bearer $ZAVU_API_KEY" \
+  -H "Authorization: Bearer $ZAVUDEV_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"senderId": "snd_abc123"}'
 ```

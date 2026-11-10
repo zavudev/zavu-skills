@@ -45,8 +45,8 @@ claude mcp add zavudev --scope user \
 
 ## Links
 
-- [Documentation](https://docs.zavu.dev)
-- [API Reference](https://docs.zavu.dev/api-reference)
+- [Documentation](https://www.zavu.dev/docs)
+- [API Reference](https://www.zavu.dev/docs/api-reference)
 - [Dashboard](https://dashboard.zavu.dev)
 - [MCP Server](https://www.npmjs.com/package/@zavudev/sdk-mcp)
 
