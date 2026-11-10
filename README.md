@@ -31,6 +31,7 @@ claude mcp add zavudev --scope user \
 | `whatsapp-templates` | Reference | Template creation, Meta approval, OTP authentication |
 | `ai-agent` | Reference + Workflow | Agent config via the imperative API (dashboard / REST) — for no-code agent setups |
 | `memory` | Reference + Workflow | Agent memory: facts recalled by meaning (`ctx.memory`), JSON collections recalled by key, scoped per project/contact/thread |
+| `sandboxes` | Reference + Workflow | Isolated Linux machines over `/v1/sandboxes`: create, run commands, files, ports, stop/resume, billing and limits |
 | `voice-agent` | Workflow + Reference | AI voice agents: `voice` block on `defineAgent`, placing/inspecting calls, transcripts, human handoff |
 | `contacts-management` | Reference | Multi-channel contacts, merge, introspection |
 | `phone-numbers` | Reference | Search, purchase, regulatory requirements |
