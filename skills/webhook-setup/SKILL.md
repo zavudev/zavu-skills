@@ -36,6 +36,11 @@ A **Sender** is the API handle you pass as `Zavu-Sender`; **accounts** (a WhatsA
 | `invitation.status_changed` | Invitations | Partner invitation status changed (in_progress, completed, failed, cancelled, or back to pending on resend). Never sent for expiry |
 | `domain.verified` | Domains | Custom email domain passed verification |
 | `domain.failed` | Domains | Custom email domain failed verification |
+| `sandbox.running` | Sandboxes (project webhook only) | A compute sandbox finished starting. `data.sandbox` as `GET /v1/sandboxes/{id}` returns it |
+| `sandbox.stopped` | Sandboxes (project webhook only) | A compute sandbox reads `stopped`. `data.sandbox.stopReason`: `requested`, `timeout`, `insufficient_balance`, `spend_cap_reached`, `plan`, `provider` |
+| `sandbox.failed` | Sandboxes (project webhook only) | A compute sandbox could not start or failed on its host. `data.sandbox.failureReason` |
+| `sandbox_snapshot.ready` | Sandboxes (project webhook only) | A saved snapshot finished saving. `data.snapshot` |
+| `sandbox_snapshot.failed` | Sandboxes (project webhook only) | A snapshot could not be saved; first day refunded. `data.snapshot` |
 
 ## Configure Webhook via SDK
 

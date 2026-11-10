@@ -59,6 +59,28 @@ delete.
 `starting` wait for it; on `stopped`/`failed` they answer
 `409 sandbox_not_running`.
 
+`stopReason` on a `stopping`/`stopped` sandbox says why the run ended:
+`requested`, `timeout`, `insufficient_balance`, `spend_cap_reached`, `plan` or
+`provider`. Null while it runs.
+
+## Webhooks (instead of polling)
+
+The project webhook (`POST /v1/invitations/webhook` `{url, events}`, which
+replaces the event list; SDK `client.invitations.webhook.configure`) takes:
+
+| Event | When | `data` |
+|-------|------|--------|
+| `sandbox.running` | finished starting (create, resume, copy) | `sandbox` |
+| `sandbox.stopped` | reads `stopped`, resumable now; not sent at `stopping` | `sandbox` with `stopReason` |
+| `sandbox.failed` | could not start or failed on its host; a failed resume is not sent | `sandbox` with `failureReason` |
+| `sandbox_snapshot.ready` | snapshot can be started from | `snapshot` |
+| `sandbox_snapshot.failed` | save did not finish, first day refunded | `snapshot` |
+
+`data.sandbox` / `data.snapshot` is exactly what `GET` returns. Deliveries can
+repeat or arrive out of order: dedupe by event `id`, trust `status`. Use
+`sandbox.stopped` with a `stopReason` other than `requested` to learn that the
+platform ended a job (timeout, balance, spend cap, plan).
+
 ## Workflow (REST)
 
 All requests: `Authorization: Bearer $ZAVU_API_KEY`, base `https://api.zavu.dev`.
@@ -154,14 +176,16 @@ resume (`503` while stopped, `404` once deleted). At most 20 ports per sandbox
 
 ## SDK
 
-`@zavudev/sdk` 0.63.0 and later has `client.sandboxes` (`create`, `list`,
+`@zavudev/sdk` 0.64.0 and later has `client.sandboxes` (`create`, `list`,
 `retrieve`, `stop`, `resume`, `delete`) with `client.sandboxes.commands`
 (`run`, `retrieve`), `client.sandboxes.files` (`read`, `write`, `delete`,
 `list`), `client.sandboxes.ports` (`expose`, `list`), `client.sandboxes.fork`,
 `client.sandboxes.ssh.authorize`, `client.sandboxes.desktop.open`,
 `client.sandboxes.snapshots` (`create`, `list`, `retrieve`, `delete`, `share`,
 `revokeShare`) and `client.sandboxes.environments` (`create`, `list`,
-`retrieve`, `update`, `delete`). On an older SDK, use the REST calls above.
+`retrieve`, `update`, `delete`). 0.65.0 adds `stopReason` and the sandbox
+events on `client.invitations.webhook`. On an older SDK, use the REST calls
+above.
 
 ## Limits and errors
 
