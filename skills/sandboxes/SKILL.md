@@ -39,6 +39,16 @@ delete.
 - A running sandbox is stopped automatically at its `timeoutSeconds` (default
   3600, max 86400), when the balance or cap no longer covers 15 more minutes,
   or when the team leaves its paid plan.
+- `"timeoutSeconds": null` on create or resume turns the timeout off (reads
+  back as `null`); balance, cap and plan still stop it.
+- `"ephemeral": true` on create never saves the disk: a stop erases it,
+  `expiresAt` equals `stoppedAt`, and resume answers `409 sandbox_expired`.
+- `"environment": "staging"` on create sets the variables of a project
+  environment (created in the dashboard, values encrypted); `env` wins on the
+  same name. Unknown name → `404 not_found`, nothing charged.
+- `"from": "zsh_..."` on create starts from a saved snapshot's share code
+  (made by its owner in the dashboard, any team). Takes the snapshot's size.
+  Unknown or revoked → `404 not_found`, nothing charged.
 
 **Always stop or delete what you created.** A forgotten sandbox bills until its timeout.
 
@@ -124,16 +134,34 @@ resume (`503` while stopped, `404` once deleted). At most 20 ports per sandbox
 |---|---|
 | List | `GET /v1/sandboxes?status=running&limit=50&cursor=...` |
 | Get | `GET /v1/sandboxes/{id}` |
-| Resume | `POST /v1/sandboxes/{id}/resume` `{timeoutSeconds?}` — billed like a create |
+| Resume | `POST /v1/sandboxes/{id}/resume` `{timeoutSeconds?}` (`null` = no auto-stop) — billed like a create |
 | Delete | `DELETE /v1/sandboxes/{id}` — stops, settles, deletes the disk; irreversible |
+| List ports | `GET /v1/sandboxes/{id}/ports` |
+| Copy | `POST /v1/sandboxes/{id}/fork` — new sandbox with a copy of the disk, billed like a create; not for ephemeral |
+| SSH | `POST /v1/sandboxes/{id}/ssh` `{publicKey}` → `ssh.command`; running only; re-authorize after a resume |
+| Desktop | `POST /v1/sandboxes/{id}/desktop` `{view: "desktop"\|"browser"}` → short-lived `desktop.url` (secret); `409 sandbox_not_ready` for a few seconds after a start |
+
+### Saved snapshots and environments
+
+| Call | Endpoint |
+|---|---|
+| Save | `POST /v1/sandbox-snapshots` `{sandboxId, name}` → `202`, poll until `status: ready`. $0.07/started UTC day, 20 per team |
+| List / get / delete | `GET /v1/sandbox-snapshots`, `GET` / `DELETE /v1/sandbox-snapshots/{id}` |
+| Share / revoke | `POST` / `DELETE /v1/sandbox-snapshots/{id}/share` → `snapshot.shareCode` (`zsh_...`, secret) |
+| Start from one | `from: "<snapshotId>"` or `from: "zsh_..."` on create |
+| Environments | `POST /v1/sandbox-environments` `{name, env}`; `GET` list / one; `PATCH` `{name?, env?, unset?}`; `DELETE`. Values never returned (key + `last4`). 50 per project |
+| Start with one | `environment: "<name>"` on create; `env` wins on the same key |
 
 ## SDK
 
 `@zavudev/sdk` 0.63.0 and later has `client.sandboxes` (`create`, `list`,
 `retrieve`, `stop`, `resume`, `delete`) with `client.sandboxes.commands`
 (`run`, `retrieve`), `client.sandboxes.files` (`read`, `write`, `delete`,
-`list`) and `client.sandboxes.ports` (`expose`). On an older SDK, use the REST
-calls above.
+`list`), `client.sandboxes.ports` (`expose`, `list`), `client.sandboxes.fork`,
+`client.sandboxes.ssh.authorize`, `client.sandboxes.desktop.open`,
+`client.sandboxes.snapshots` (`create`, `list`, `retrieve`, `delete`, `share`,
+`revokeShare`) and `client.sandboxes.environments` (`create`, `list`,
+`retrieve`, `update`, `delete`). On an older SDK, use the REST calls above.
 
 ## Limits and errors
 
@@ -149,5 +177,5 @@ calls above.
 | `402 insufficient_balance` / `spend_cap_reached` | Add funds / raise the cap in Billing. |
 | `409 sandbox_not_running` | Resume it first. |
 | `409 sandbox_not_stopped` | Only a stopped sandbox can be resumed. |
-| `409 sandbox_expired` | Disk deleted 14 days after stopping; create a new one. |
+| `409 sandbox_expired` | Disk deleted 14 days after stopping, or at the stop if ephemeral; create a new one. |
 | `503 sandbox_unavailable` | No capacity; retry shortly. Nothing was charged for machine time. |
