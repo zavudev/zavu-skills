@@ -101,6 +101,8 @@ const result = await zavu.messages.send({
 
 Use `sms_oneway` when replies are not expected (no inbound path back to you).
 
+One-way SMS has no route to Micronesia, the British Indian Ocean Territory, the Marshall Islands, Niue, Norfolk Island, Saint Helena, Tokelau, and Wallis and Futuna. A send there is refused with `403 destination_unsupported` before anything is charged; use another channel.
+
 ```typescript
 await zavu.messages.send({
   to: "+14155551234",
@@ -493,6 +495,7 @@ do {
 | `url_not_verified` | Message has unverified URLs | Submit URLs via `/v1/urls` first |
 | `url_shortener_blocked` | URL shortener detected | Use full destination URL |
 | `ten_dlc_required` | HTTP 403: the destination is a US or Canadian (+1) number and the project has no approved 10DLC campaign. A carrier requirement, not a Zavu one; registering a brand and campaign needs an approved business verification | Register a 10DLC brand and campaign in the dashboard, or send to that contact on another channel |
+| `destination_unsupported` | HTTP 403, `sms_oneway` only: one-way SMS has no route to the recipient's country; `details.channel` and `details.countryCode` say which. Nothing is created or charged. A one-way message that reaches dispatch another way (an agent reply, a flow) fails with `errorCode` `DESTINATION_UNSUPPORTED` and is refunded | Send it on another channel |
 | `sending_suspended` | HTTP 403: this account's sending was suspended after Zavu's automated review refused several of its messages. Every channel is refused while it lasts, and `details.dashboardUrl` points at support. Same code on `POST /v1/calls` | Contact support; waiting does not clear it |
 | `RISK_BLOCKED` / `RISK_REJECTED` / `RISK_REVIEW_EXPIRED` | On the failed message (async), not on the response: the automated review refused the message outright, a reviewer did not approve a held one, or the review window closed first. A failed SMS is not charged | Rewrite the message, or contact support with the message ID if the refusal looks wrong |
 | `SENDING_SUSPENDED` | On the failed message (async): the account's sending was suspended while this message was queued | Contact support |

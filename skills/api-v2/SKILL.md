@@ -194,6 +194,7 @@ Branch on `code`, never on `message`.
 | `conflict` (409) | Repeated `idempotencyKey`. Nothing was re-sent; the original is in `details.message`. |
 | `kyb_required` (403) | One-way SMS is closed to this account until business verification is approved (only when the account is required to verify first; not the default). Use another channel or verify at `/kyb`. |
 | `ten_dlc_required` (403) | SMS to +1 needs an approved 10DLC campaign. `details.connect` lists the v1 registration calls; `details.alternatives` lists WhatsApp, Telegram and email. |
+| `destination_unsupported` (403) | One-way SMS has no route to the recipient's country (`details.countryCode`). Nothing was created or charged; use another channel. |
 | `channel_inactive` (403) | The named `channel` is switched off. Activate it or omit `channel`. |
 | `not_found` (404) | Resource or address not in this project. |
 | `method_not_allowed` (405) | Use a method from `details.allowed`. |
