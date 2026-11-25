@@ -278,6 +278,12 @@ Only `v2` covers `{t}.{body}`. Read `webhook.signatureVersion` on the sender
 (`GET /v1/senders/{senderId}`) to know which one that receiver gets. New senders
 default to `v2`; anything created earlier is on `v1` until moved.
 
+The project webhook works the same way: `signatureVersion` on
+`GET /v1/invitations/webhook`. A new one is `v2`; one configured earlier is `v1`
+until moved with `PATCH /v1/invitations/webhook` and
+`{"signatureVersion": "v1+v2"}`, then `"v2"`. A direct jump between `v1` and `v2`,
+either way, is a `400`.
+
 Prefer `v2` when present and fall back to `v1`, so one implementation works
 before, during and after a migration.
 
@@ -536,7 +542,8 @@ npx zavudev senders create --name Support --phone +15551234567 \
   --signature-version v1+v2
 ```
 
-`v1` straight to `v2` returns `400`; set `v1+v2` first. Step 2 is the one that
+A direct jump between `v1` and `v2`, either way, returns `400`; set `v1+v2`
+first, also to roll back. Step 2 is the one that
 matters: a receiver that answers `200` before verifying looks identical to a
 working one from Zavu's side, so a passing test request proves nothing. Confirm
 in the receiver's own logs.
@@ -573,15 +580,17 @@ handler runs inside the function, with no HTTP hop.
 
 ## Retry Policy
 
-| Attempt | Delay |
-|---------|-------|
-| 1st retry | 1 minute |
-| 2nd retry | 5 minutes |
-| 3rd retry | 15 minutes |
-| 4th retry | 1 hour |
-| 5th retry | 4 hours |
+| Attempt | When |
+|---------|------|
+| 1st (original) | Immediately |
+| 2nd | 1 minute after the 1st fails |
+| 3rd | 5 minutes after the 2nd fails |
+| 4th | 15 minutes after the 3rd fails |
+| 5th | 1 hour after the 4th fails |
 
-After 5 retries, delivery is marked as failed.
+Each attempt is signed again when it is sent, so a retry carries a fresh `t` and a valid signature.
+
+After 5 failed attempts (the original and 4 retries), delivery is marked as failed.
 
 ## Best Practices
 
